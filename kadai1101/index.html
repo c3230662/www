@@ -4,28 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>丸い矢印付きの見出し</title>
+    <style>.arrow-heading::before {
+        content: '➤'; /* 矢印の文字 */
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: #007bff; /* 丸の背景色 */
+        color: #fff; /* 矢印の色 */
+        border-radius: 50%;
+        padding: 10px;
+        font-size: 16px;
+        line-height: 1;
+    }</style>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <h2 class="arrow-heading">見出しのテキスト</h2>
+ 
+    
 </body>
 </html>
-.arrow-heading {
-    position: relative;
-    padding-left: 40px; /* 矢印分の余白を確保 */
-    font-size: 24px;
-}
-
-.arrow-heading::before {
-    content: '➤'; /* 矢印の文字 */
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: #007bff; /* 丸の背景色 */
-    color: #fff; /* 矢印の色 */
-    border-radius: 50%;
-    padding: 10px;
-    font-size: 16px;
-    line-height: 1;
-}
