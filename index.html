@@ -1,13 +1,115 @@
 <!DOCTYPE html>
-<html lang"ja">
-  <head>
+<html lang="ja">
+<head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>koga idawa github site</title>
-  </head>
-  <body>
-    <p>はじめまして、githubへ！</p>
-    <p>情報の更新ができていますか？</p>
-  </body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Design with Button Actions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header, footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1em 0;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1em;
+            padding: 1em;
+        }
+
+        section {
+            background-color: #f4f4f4;
+            padding: 1em;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        section h2 {
+            margin-top: 0;
+        }
+
+        section img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        button {
+            display: block;
+            margin-top: 1em;
+            padding: 0.5em 1em;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Responsive Design with Button Actions</h1>
+    </header>
+    <div class="container">
+        <section id="section1">
+            <h2>Section 1</h2>
+            <p>This is the content for section. It has a light blue</p>
+            <p>background,padding,margin,and a box shadouw.</p>
+            <p>The layout adjusts responsively to differentscreen</p>
+            <p>sizes</p>
+            <img src="section1.jpg" alt="Section 1 Image">
+            <button onclick="showAlert('Section 1 Button Clicked')">Click Me</button>
+        </section>
+        <section id="section2">
+            <h2>Section 2</h2>
+            <p>This is the content for section. It has a light orange</p>
+            <p>background,padding,margin,and a box shadow.</p>
+            <p>The layout a djusts responsively to different screen</p>
+            <p>sizes.</p>
+            <img src="section2.jpg" alt="Section 2 Image">
+            <button onclick="showAlert('Section 2 Button Clicked')">Click Me</button>
+        </section>
+        <section id="section3">
+            <h2>Section 3</h2>
+            <p>This is the content for section. It has a light purple</p>
+            <p>background,padding,margin,and box shadow</p>
+                <p>The layout adjusts responsively to different screen</p>
+            <p>sizes</p>
+            <img src="section3.jpg" alt="Section 3 Image">
+            <button onclick="showAlert('Section 3 Button Clicked')">Click Me</button>
+        </section>
+        <section id="section4">
+            <h2>Section 4</h2>
+            <p>This is the content for section. It has alight green</p>
+            <p>background,padding,margin,and a box shadow</p>
+            <p>The layout adjusts responsively to different screen</p>
+            <p>size</p>
+            <img src="section4.jpg" alt="Section 4 Image">
+            <button onclick="showAlert('Section 4 Button Clicked')">Click Me</button>
+        </section>
+    </div>
+    <footer>
+        <p>&copy; 2024 Responsive Design with Button Actions</p>
+    </footer>
+    <script>
+        function showAlert(message) {
+            alert(message);
+        }
+    </script>
+</body>
 </html>
