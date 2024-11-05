@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国旗の表示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #country-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #country-list li {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        #country-list img {
+            width: 50px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>人口の多い国ランキング</h1>
+    <ol id="country-list">
+        <li>中国</li>
+        <li>インド</li>
+        <li>アメリカ</li>
+        <li>インドネシア</li>
+    </ol>
+    <button onclick="changeToFlags()">国旗で表示</button>
+
+    <script>
+        function changeToFlags() {
+            const countries = [
+                { name: "中国", flag: "https://flagcdn.com/w320/cn.png" },
+                { name: "インド", flag: "https://flagcdn.com/w320/in.png" },
+                { name: "アメリカ", flag: "https://flagcdn.com/w320/us.png" },
+                { name: "インドネシア", flag: "https://flagcdn.com/w320/id.png" }
+            ];
+
+            const countryList = document.getElementById("country-list");
+            countryList.innerHTML = "";  // 一旦リストをクリア
+
+            countries.forEach(country => {
+                const listItem = document.createElement("li");
+                const flagImage = document.createElement("img");
+                flagImage.src = country.flag;
+                flagImage.alt = country.name;
+                listItem.appendChild(flagImage);
+                countryList.appendChild(listItem);
+            });
+        }
+    </script>
+</body>
+</html>
