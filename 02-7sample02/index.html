@@ -6,7 +6,6 @@
     <title>写真の一覧</title>
     <style>
         #photo-gallery {
-            display: none;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
@@ -24,21 +23,22 @@
     <p>以下のボタンをクリックすると、写真が一覧表示されます。</p>
     <button id="show-photos-btn">写真を表示</button>
 
-    <div id="photo-gallery">
-        <img src="photo_1.jpg" alt="Photo 1">
-        <img src="photo_2.jpg" alt="Photo 2">
-        <img src="photo_3.jpg" alt="Photo 3">
-        <img src="photo_4.jpg" alt="Photo 4">
-        <img src="photo_5.jpg" alt="Photo 5">
-        <img src="photo_6.jpg" alt="Photo 6">
-        <img src="photo_7.jpg" alt="Photo 7">
-        <img src="photo_8.jpg" alt="Photo 8">
-    </div>
+    <div id="photo-gallery"></div>
 
     <script>
         document.getElementById('show-photos-btn').addEventListener('click', function() {
-            document.getElementById('photo-gallery').style.display = 'grid';
-            this.remove(); // ボタンを削除
+            const photoGallery = document.getElementById('photo-gallery');
+            
+            // 8枚の写真を挿入
+            for (let i = 1; i <= 8; i++) {
+                const img = document.createElement('img');
+                img.src = `photo_${i}.jpg`;
+                img.alt = `Photo ${i}`;
+                photoGallery.appendChild(img);
+            }
+            
+            // ボタンを削除
+            this.remove();
         });
     </script>
 </body>
