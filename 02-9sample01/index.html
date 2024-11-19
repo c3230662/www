@@ -21,7 +21,7 @@
     <p>最も面積が大きい「県」は何県でしょう？</p>
     <button id="hintButton">ヒントを見る</button>
     <p id="result"></p>
-<p>（注意）北海道は「県」ではありません。</p>
+
     <script>
         let clickCount = 0;
 
@@ -29,11 +29,12 @@
             clickCount++;
             const result = document.getElementById("result");
 
-            if (clickCount === 1) {
-                result.textContent = "東北地方にあります。";
+            if (clickCount === 0) {
+                result.textContent = "（注意）北海道は「県」ではありません。";
                 this.textContent = "答えを見る";
-            }else   {
-
+            } else if (clickCount === 1) {
+                result.textContent = "東北地方にあります。";
+            } else {
                 result.textContent = "答えは「岩手県」です。";
                 this.disabled = true; // ボタンを無効化
             }
