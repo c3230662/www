@@ -31,9 +31,10 @@
 
             if (clickCount === 0) {
                 result.textContent = "（注意）北海道は「県」ではありません。";
-                this.textContent = "答えを見る";
+                
             } else if (clickCount === 1) {
                 result.textContent = "東北地方にあります。";
+                this.textContent = "答えを見る";
             } else {
                 result.textContent = "答えは「岩手県」です。";
                 this.disabled = true; // ボタンを無効化
