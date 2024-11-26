@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>条件分岐</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        function check(x) {
+            if (x === 2 || x === 4) {
+                document.getElementById("result").innerText = "正解！";
+            } else {
+                document.getElementById("result").innerText = "間違い！";
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>問題</h1>
+    <p>次の方程式を満たす解を求めなさい。解は2つあります。</p>
+    <p>x<sup>2</sup> - 6x + 8 = 0</p>
+    <div>
+        <button onclick="check(1)">x = 1</button>
+        <button onclick="check(2)">x = 2</button>
+        <button onclick="check(3)">x = 3</button>
+        <button onclick="check(4)">x = 4</button>
+        <button onclick="check(5)">x = 5</button>
+    </div>
+    <div id="result"></div>
+</body>
+</html>
