@@ -23,6 +23,21 @@
   <button id="calculateButton">結果を見る</button>
   <div class="result" id="result">ここに結果が表示されます。</div>
 
-  <script src="script.js"></script>
+  <script>
+    document.getElementById('calculateButton').addEventListener('click', function () {
+      // 最大公約数を求める関数
+      const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+      // 最小公倍数を求める関数
+      const lcm = (a, b) => (a * b) / gcd(a, b);
+
+      let result = 1; // 初期値
+      for (let i = 1; i <= 10; i++) {
+        result = lcm(result, i); // 1〜10の最小公倍数を計算
+      }
+
+      // 結果を表示
+      document.getElementById('result').textContent = `答えは${result}です。`;
+    });
+  </script>
 </body>
 </html>
