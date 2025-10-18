@@ -2,132 +2,179 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>大垣市の神社マップ（BODIK＋カスタム統合・1ファイル版）</title>
+  <title>大垣市の神社マップ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <!-- MarkerCluster -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
   <style>
     :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; }
     header {
-      padding: .6rem 1rem;
-      border-bottom: 1px solid #ddd;
-      display: grid; grid-template-columns: 1fr auto; gap: .6rem 1rem; align-items: center;
+      padding: .6rem 1rem; border-bottom: 1px solid #e5e5e5;
+      display: flex; align-items: center; gap: .8rem;
     }
-    header h1 { font-size: 1rem; margin: 0; }
-    header .meta { font-size: .85rem; opacity: .8; }
-    .controls { display:flex; gap:.5rem; flex-wrap: wrap; justify-self: end; }
-    .controls input, .controls select, .controls button {
-      font-size: .9rem; padding: .35rem .55rem; border-radius: .45rem;
-      border: 1px solid #ccc; background: transparent;
+    header h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+    #kw { margin-left: auto; min-width: 220px; max-width: 42vw;
+      font-size: .95rem; padding: .4rem .55rem; border-radius: .5rem; border: 1px solid #ccc; background: transparent;
     }
-    .controls button { cursor: pointer; }
-    #map { height: calc(100vh - 280px); min-height: 360px; }
-    .section {
-      padding: .8rem 1rem; border-bottom: 1px solid #eee; display: grid; gap: .5rem;
+    #map { height: calc(100vh - 56px); }
+
+    /* ---- 開発者パネル（隠しUI） ---- */
+    .dev-panel {
+      position: fixed; inset: 0; background: rgba(0,0,0,.35);
+      display: none; z-index: 1200; align-items: center; justify-content: center;
     }
-    .section h2 { font-size: 1rem; margin: 0; }
-    .grid { display: grid; gap: .5rem; grid-template-columns: 1fr 1fr; }
-    .grid > div { display:flex; gap:.5rem; align-items: center; flex-wrap: wrap; }
-    textarea {
-      width: 100%; min-height: 100px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size: .9rem; padding: .6rem; border: 1px solid #ccc; border-radius: .45rem; background: transparent;
+    .dev-wrap {
+      width: min(1080px, 92vw); max-height: 86vh; overflow: auto;
+      background: #fff; color: #111; border-radius: .8rem; box-shadow: 0 16px 48px rgba(0,0,0,.25);
+      padding: 1rem 1rem 1.2rem;
     }
-    .hint { font-size: .85rem; opacity: .8; }
-    .legend {
-      position: absolute; z-index: 1000; right: 10px; top: 10px;
-      background: rgba(255,255,255,.9); padding: .5rem .6rem; border-radius: .5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,.1); font-size: .85rem;
+    .dev-head { display:flex; gap:.75rem; align-items:center; margin-bottom:.6rem; }
+    .dev-head h2 { margin: 0; font-size: 1.05rem; }
+    .dev-head .sub { margin-left:auto; font-size:.85rem; opacity:.7 }
+    .grid { display:grid; grid-template-columns: 1fr 320px; gap:.8rem; }
+    textarea.dev-json {
+      width: 100%; min-height: 260px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .9rem; padding: .7rem; border: 1px solid #ddd; border-radius: .5rem; background: #fafafa;
     }
-    .badge { display: inline-block; padding: .15rem .4rem; border-radius: .4rem; border: 1px solid #ccc; font-size: .75rem; }
+    .card { border: 1px solid #eee; border-radius: .6rem; padding: .75rem; background: #fff; }
+    .row { display:flex; gap:.5rem; flex-wrap: wrap; align-items: center; }
+    .row input[type="file"], .row input[type="text"], .row select, .row button {
+      font-size: .9rem; padding: .35rem .55rem; border-radius: .45rem; border: 1px solid #ccc; background: transparent;
+    }
+    .row button { cursor: pointer; }
+    .hint { font-size: .85rem; opacity: .75; }
+    .dev-actions { display:flex; gap:.5rem; margin-top:.6rem; }
     .toast {
       position: fixed; z-index: 1100; left: 50%; transform: translateX(-50%);
-      bottom: 12px; background: rgba(0,0,0,.7); color: #fff; padding: .5rem .75rem; border-radius: .5rem; font-size: .85rem;
-      display:none;
+      bottom: 12px; background: rgba(0,0,0,.74); color:#fff; padding:.55rem .8rem; border-radius:.5rem; font-size:.85rem; display:none;
     }
-    .popup h3 { margin: 0 0 .3rem; font-size: 1rem; line-height: 1.2; }
-    .popup p { margin: .2rem 0; font-size: .9rem; }
-    @media (max-width: 900px) {
-      #map { height: calc(100vh - 420px); }
-      .grid { grid-template-columns: 1fr; }
+    .legend {
+      position: absolute; right: 10px; top: 64px; z-index: 1000;
+      background: rgba(255,255,255,.9); padding: .45rem .55rem; border-radius: .55rem; box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      font-size: .85rem;
+    }
+
+    /* ダーク時の開発パネル配色 */
+    @media (prefers-color-scheme: dark) {
+      .dev-wrap { background: #131416; color: #e9eaed; }
+      textarea.dev-json { background: #0f1114; border-color: #2a2d32; color: #dfe2e6; }
+      .card { background: #15171b; border-color: #2a2d32; }
+      .row input, .row select, .row button { border-color: #2a2d32; background: transparent; color: #e9eaed; }
     }
   </style>
 </head>
 <body>
   <header>
-    <div>
-      <h1>大垣市の神社マップ</h1>
-      <div class="meta">出典：BODIK WAPI（tourism / cultural_property）＋あなたのカスタムデータ</div>
-    </div>
-    <div class="controls" role="group" aria-label="操作">
-      <input id="kw" type="text" placeholder="名称で絞り込み（例：八幡）" />
-      <select id="sourceSel" title="データソース">
-        <option value="mix">併用（公的＋自分）</option>
-        <option value="custom">自分のみ（カスタムだけ）</option>
-        <option value="public">公的のみ（tourism + cultural_property）</option>
-        <option value="tourism">public: tourismのみ</option>
-        <option value="cultural_property">public: cultural_propertyのみ</option>
-      </select>
-      <button id="reloadBtn">再読込</button>
-    </div>
+    <h1>大垣市の神社マップ</h1>
+    <input id="kw" type="text" placeholder="名称で絞り込み（例：八幡） / Alt+Dで編集" />
   </header>
 
-  <div class="section">
-    <h2>カスタム神社データ（あなたの解説サイトへリンク）</h2>
-    <div class="grid">
-      <div>
-        <input id="fileInput" type="file" accept=".json,.geojson,.csv,.tsv" />
-        <button id="loadFileBtn">読み込む</button>
-        <button id="clearCustomBtn">カスタム削除</button>
-      </div>
-      <div class="hint">
-        形式：<b>JSON</b>（配列） / <b>GeoJSON</b>（Point） / <b>CSV/TSV</b>（ヘッダ必須：<code>name,lat,lng,url,address</code>）
-      </div>
-    </div>
-    <textarea id="customText" placeholder='例（JSON配列）:
-[
-  {"name":"○○神社","lat":35.360,"lng":136.620,"url":"https://あなたの解説URL","address":"大垣市…"},
-  {"name":"△△八幡神社","lat":35.37,"lng":136.61,"url":"https://あなたの解説URL"}
-]'></textarea>
-    <div>
-      <button id="applyCustomBtn">上のJSONを反映</button>
-      <span class="hint">※反映するとローカル保存（ブラウザのlocalStorage）され、次回も残ります。</span>
-    </div>
-  </div>
-
   <div id="map" role="region" aria-label="地図"></div>
-  <div class="legend">
-    <div><span class="badge">神社</span> を表示（分類／名称に「神社」を含む、またはカスタム登録）。</div>
-    <div style="margin-top:.25rem;">一致した場合は <b>あなたのURL</b> を優先します。</div>
-  </div>
+  <div class="legend">出典：BODIK WAPI（tourism / cultural_property）＋カスタム。重複時はカスタム優先。</div>
   <div id="toast" class="toast"></div>
+
+  <!-- 開発者専用パネル（Alt + Dで開閉 / ?dev=1で起動時オープン） -->
+  <div id="devPanel" class="dev-panel" aria-hidden="true">
+    <div class="dev-wrap" role="dialog" aria-modal="true" aria-label="開発者パネル">
+      <div class="dev-head">
+        <h2>開発者パネル</h2>
+        <div class="sub">Alt + D で閉じる</div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="row" style="justify-content: space-between;">
+            <div class="row">
+              <label class="hint">ソース：</label>
+              <select id="sourceSel">
+                <option value="mix">併用（public＋custom）</option>
+                <option value="custom">customのみ</option>
+                <option value="public">publicのみ（tourism + cultural_property）</option>
+                <option value="tourism">public: tourismのみ</option>
+                <option value="cultural_property">public: cultural_propertyのみ</option>
+              </select>
+              <label class="hint">重複距離：</label>
+              <select id="nearSel">
+                <option value="150">150m</option>
+                <option value="100">100m</option>
+                <option value="200">200m</option>
+                <option value="300">300m</option>
+              </select>
+            </div>
+            <div class="row">
+              <button id="btnReload">再描画</button>
+              <button id="btnClose">閉じる</button>
+            </div>
+          </div>
+
+          <h3 class="hint" style="margin:.6rem 0 .25rem;">カスタム神社データ（JSON配列 / GeoJSON FeatureCollection も可）</h3>
+          <textarea id="customText" class="dev-json" placeholder='[{"name":"○○神社","lat":35.36,"lng":136.62,"url":"https://あなたの解説","address":"大垣市…"}]'></textarea>
+          <div class="dev-actions">
+            <button id="applyCustomBtn">反映（保存）</button>
+            <button id="clearCustomBtn">カスタム削除</button>
+            <span class="hint">※ ブラウザの localStorage に保存します。</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row">
+            <input id="fileInput" type="file" accept=".json,.geojson,.csv,.tsv" />
+            <button id="loadFileBtn">ファイル読み込み</button>
+          </div>
+          <p class="hint" style="margin:.5rem 0 0;">
+            CSV/TSVはヘッダに <code>name,lat,lng,url,address</code> を推奨。<br/>
+            JSON配列は <code>[{name,lat,lng,url,address}]</code>。GeoJSONはPoint座標（[lng, lat]）。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script>
-    // ===== 設定 =====
+    // ====== 基本設定 ======
     const CITY_NAME = "大垣市";
-    const MAX_RESULTS = 2000;
     const WAPI_BASE = "https://wapi.bodik.jp";
-    const FALLBACK_OGAKI = (name) => `https://www.ogakikanko.jp/?s=${encodeURIComponent(name || "")}`;
+    const MAX_RESULTS = 2000;
+    const DEFAULT_NEAR_M = 150;
     const JINJA_KEYS = ["神社", "神社・仏閣", "寺社", "宗教施設"];
+    const FALLBACK_OGAKI = (name) => `https://www.ogakikanko.jp/?s=${encodeURIComponent(name||"")}`;
 
-    // ===== 便利関数 =====
+    // ====== 便利関数 ======
     const $ = (id) => document.getElementById(id);
-    const showToast = (msg, ms=2200) => { const el = $("toast"); el.textContent = msg; el.style.display = "block"; setTimeout(()=>el.style.display="none", ms); };
+    const qs = (s, r=document) => r.querySelector(s);
+    const showToast = (msg, ms=2200) => { const t=$("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none", ms); };
     const pick = (o, keys) => { for (const k of keys) if (o?.[k] != null && o[k] !== "") return o[k]; };
-    const toNum = (v) => { const s = typeof v === "string" ? v.replace(/[^\d\.\-]/g,"") : v; const n = parseFloat(s); return Number.isFinite(n)?n:undefined; };
+    const toNum = (v) => { const s = typeof v === "string" ? v.replace(/[^\d\.\-]/g, "") : v; const n = parseFloat(s); return Number.isFinite(n) ? n : undefined; };
 
-    // ハブ・ローカル保存
-    const LS_KEY = "ogaki_jinja_custom_v1";
+    // ====== ローカル保存（カスタム） ======
+    const LS_KEY = "ogaki_jinja_custom_v2";
     const saveCustom = (arr) => localStorage.setItem(LS_KEY, JSON.stringify(arr||[]));
     const loadCustom = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)||"[]"); } catch { return []; } };
 
-    // 神社判定
+    // ====== 開発者パネル トグル ======
+    const devPanel = $("devPanel");
+    const openDev = () => { devPanel.style.display="flex"; devPanel.setAttribute("aria-hidden","false"); };
+    const closeDev = () => { devPanel.style.display="none"; devPanel.setAttribute("aria-hidden","true"); };
+    // Alt + D で開閉
+    window.addEventListener("keydown", (e) => {
+      if (e.altKey && (e.key === "d" || e.key === "D")) {
+        e.preventDefault();
+        const isOpen = devPanel.style.display === "flex";
+        isOpen ? closeDev() : openDev();
+      }
+    });
+    // URLに ?dev=1 があれば起動時に開く
+    if (new URL(location.href).searchParams.get("dev") === "1") {
+      window.addEventListener("DOMContentLoaded", openDev);
+    }
+
+    // ====== 神社判定・正規化 ======
     const looksLikeJinja = (rec) => {
       const name = (pick(rec, ["名称","施設名","name","title"]) || "").toString();
       const cat  = (pick(rec, ["分類","カテゴリ","ジャンル","category","genre","種別"]) || "").toString();
@@ -135,15 +182,11 @@
       const inName = name.includes("神社");
       return inCat || inName;
     };
-
-    // 座標抽出
     const extractLatLng = (rec) => {
-      const lat = toNum(pick(rec, ["緯度","latitude","lat","Lat","LAT","Y","y"]));
-      const lng = toNum(pick(rec, ["経度","longitude","lon","lng","Long","LON","X","x"]));
+      const lat = toNum(pick(rec, ["緯度","latitude","lat","Lat","LAT","Y"]));
+      const lng = toNum(pick(rec, ["経度","longitude","lon","lng","Long","LON","X"]));
       return (Number.isFinite(lat) && Number.isFinite(lng)) ? [lat,lng] : undefined;
     };
-
-    // 正規化：内部フォーマット {name,lat,lng,url,address,source}
     const normFromPublic = (rec, source) => {
       const name = pick(rec, ["名称","施設名","name","title"]) || "(名称未設定)";
       const addr = pick(rec, ["住所","所在地","address"]);
@@ -152,152 +195,66 @@
       if (!ll) return null;
       return { name, lat: ll[0], lng: ll[1], url, address: addr||"", source };
     };
-
     const normFromCustom = (item) => {
-      // item: {name,lat,lng,url,address} 想定
       const name = item.name || item.名称 || item.title || "(名称未設定)";
-      const lat = toNum(item.lat ?? item.latitude ?? item.緯度 ?? item.Y);
-      const lng = toNum(item.lng ?? item.lon ?? item.longitude ?? item.経度 ?? item.X);
-      const url = item.url ?? item.URL ?? item.link ?? FALLBACK_OGAKI(name);
+      const lat  = toNum(item.lat ?? item.latitude ?? item.緯度 ?? item.Y);
+      const lng  = toNum(item.lng ?? item.lon ?? item.longitude ?? item.経度 ?? item.X);
+      const url  = item.url ?? item.URL ?? item.link ?? FALLBACK_OGAKI(name);
       const address = item.address ?? item.住所 ?? "";
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
       return { name, lat, lng, url, address, source: "custom" };
     };
 
-    // 近接判定（約150m以内なら同一とみなす）
-    function isNear(a, b) {
-      const R = 6371000; // meters
-      const toRad = (d)=>d*Math.PI/180;
-      const dLat = toRad(b.lat - a.lat);
-      const dLng = toRad(b.lng - a.lng);
-      const s = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
-      const d = 2 * R * Math.asin(Math.sqrt(s));
-      return d <= 150;
+    // ====== 距離（Haversine） ======
+    function metersBetween(a, b) {
+      const R=6371000, toRad=d=>d*Math.PI/180;
+      const dLat=toRad(b.lat-a.lat), dLng=toRad(b.lng-a.lng);
+      const s=Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
+      return 2*R*Math.asin(Math.sqrt(s));
     }
 
-    // ===== 公的データ（WAPI） =====
+    // ====== BODIK WAPI ======
     async function fetchWapi(apiname, params) {
       const url = new URL(`${WAPI_BASE}/${apiname}`);
-      Object.entries(params || {}).forEach(([k,v]) => url.searchParams.set(k, v));
+      Object.entries(params||{}).forEach(([k,v])=>url.searchParams.set(k, v));
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error(`WAPI ${apiname} failed: ${res.status}`);
       return res.json();
     }
-
     async function loadTourism() {
-      const data = await fetchWapi("tourism", { select_type: "data", municipalityName: CITY_NAME, maxResults: String(MAX_RESULTS) });
+      const data = await fetchWapi("tourism", { select_type:"data", municipalityName:CITY_NAME, maxResults:String(MAX_RESULTS) });
       const rows = Array.isArray(data) ? data
                  : Array.isArray(data?.records) ? data.records
                  : Array.isArray(data?.data) ? data.data
                  : Array.isArray(data?.result) ? data.result
                  : [];
-      return rows.filter(looksLikeJinja).map(r => normFromPublic(r, "tourism")).filter(Boolean);
+      return rows.filter(looksLikeJinja).map(r=>normFromPublic(r,"tourism")).filter(Boolean);
     }
-
     async function loadCulturalProperty() {
-      const data = await fetchWapi("cultural_property", { select_type: "data", municipalityName: CITY_NAME, maxResults: String(MAX_RESULTS) });
+      const data = await fetchWapi("cultural_property", { select_type:"data", municipalityName:CITY_NAME, maxResults:String(MAX_RESULTS) });
       const rows = Array.isArray(data) ? data
                  : Array.isArray(data?.records) ? data.records
                  : Array.isArray(data?.data) ? data.data
                  : Array.isArray(data?.result) ? data.result
                  : [];
-      return rows.filter(looksLikeJinja).map(r => normFromPublic(r, "cultural_property")).filter(Boolean);
+      return rows.filter(looksLikeJinja).map(r=>normFromPublic(r,"cultural_property")).filter(Boolean);
     }
 
-    // ===== カスタムデータ =====
-    // JSON / GeoJSON / CSV / TSV を受け付け
-    async function parseFile(file) {
-      const text = await file.text();
-      const name = file.name.toLowerCase();
-      if (name.endsWith(".json") || name.endsWith(".geojson")) {
-        try {
-          const obj = JSON.parse(text);
-          if (obj?.type === "FeatureCollection") {
-            const feats = obj.features || [];
-            const arr = [];
-            for (const f of feats) {
-              if (f.geometry?.type === "Point" && Array.isArray(f.geometry.coordinates)) {
-                const [lng, lat] = f.geometry.coordinates;
-                const props = f.properties || {};
-                arr.push(normFromCustom({
-                  name: props.name || props.title || props.名称,
-                  lat, lng,
-                  url: props.url || props.link,
-                  address: props.address || props.住所
-                }));
-              }
-            }
-            return arr.filter(Boolean);
-          } else if (Array.isArray(obj)) {
-            return obj.map(normFromCustom).filter(Boolean);
-          } else {
-            showToast("JSONの形式が想定外です");
-            return [];
-          }
-        } catch (e) {
-          showToast("JSONの解析に失敗しました");
-          return [];
-        }
-      } else {
-        // CSV/TSV（シンプルパーサ）
-        const isTSV = name.endsWith(".tsv");
-        const sep = isTSV ? "\t" : ",";
-        const lines = text.replace(/\r\n?/g, "\n").split("\n").filter(l => l.trim() !== "");
-        if (lines.length === 0) return [];
-        const header = lines[0].split(sep).map(s => s.trim());
-        const idx = (k) => header.findIndex(h => h.toLowerCase() === k);
-        const iName = idx("name") >=0 ? idx("name") : idx("名称");
-        const iLat  = idx("lat") >=0 ? idx("lat") : idx("latitude");
-        const iLng  = idx("lng") >=0 ? idx("lng") : (idx("lon")>=0?idx("lon"):idx("longitude"));
-        const iUrl  = idx("url") >=0 ? idx("url") : (idx("link")>=0?idx("link"):idx("説明url"));
-        const iAddr = idx("address") >=0 ? idx("address") : idx("住所");
-        const out = [];
-        for (let i=1; i<lines.length; i++) {
-          const cols = lines[i].split(sep);
-          const item = {
-            name: iName>=0 ? cols[iName] : undefined,
-            lat:  iLat>=0  ? cols[iLat]  : undefined,
-            lng:  iLng>=0  ? cols[iLng]  : undefined,
-            url:  iUrl>=0  ? cols[iUrl]  : undefined,
-            address: iAddr>=0 ? cols[iAddr] : undefined,
-          };
-          const norm = normFromCustom(item);
-          if (norm) out.push(norm);
-        }
-        return out;
-      }
-    }
-
-    // テキストエリアJSON
-    function parseTextarea() {
-      const t = $("customText").value.trim();
-      if (!t) return [];
-      try {
-        const arr = JSON.parse(t);
-        if (!Array.isArray(arr)) { showToast("JSONは配列にしてください"); return []; }
-        return arr.map(normFromCustom).filter(Boolean);
-      } catch(e) {
-        showToast("JSONの解析に失敗しました");
-        return [];
-      }
-    }
-
-    // ===== マップ描画 =====
+    // ====== マップ ======
     let map, cluster;
     function initMap() {
-      map = L.map("map", { zoomControl: true }).setView([35.366, 136.616], 12);
+      map = L.map("map").setView([35.366, 136.616], 12);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"
+        maxZoom:19, attribution:"&copy; OpenStreetMap contributors"
       }).addTo(map);
       cluster = L.markerClusterGroup({ disableClusteringAtZoom: 16 });
       map.addLayer(cluster);
     }
     function clearMarkers(){ cluster?.clearLayers(); }
     function addMarkers(records) {
-      let c = 0;
-      records.forEach(r => {
-        const lat = r.lat, lng = r.lng;
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      let count = 0;
+      for (const r of records) {
+        if (!Number.isFinite(r.lat) || !Number.isFinite(r.lng)) continue;
         const html = `
           <div class="popup">
             <h3>${r.name}</h3>
@@ -305,88 +262,152 @@
             <p><a href="${r.url}" target="_blank" rel="noopener">解説ページを開く</a></p>
             <p class="hint">source: ${r.source}</p>
           </div>`;
-        const marker = L.marker([lat,lng]).bindPopup(html, { maxWidth: 320 });
-        cluster.addLayer(marker);
-        c++;
-      });
-      if (c>0) {
-        showToast(`${c}件表示`);
-        try { const b = cluster.getBounds(); if (b.isValid()) map.fitBounds(b.pad(0.1)); } catch {}
+        cluster.addLayer(L.marker([r.lat, r.lng]).bindPopup(html, { maxWidth: 320 }));
+        count++;
+      }
+      if (count) {
+        try { const b=cluster.getBounds(); if (b.isValid()) map.fitBounds(b.pad(0.1)); } catch {}
+        showToast(`${count}件表示`);
       } else {
-        showToast("該当データなし", 2500);
+        showToast("該当データなし", 2400);
       }
     }
 
-    // 統合：優先は custom > public（名前一致 or 近接一致で上書き）
-    function mergeData(customArr, publicArr) {
-      const merged = [...customArr]; // まずは全部採用
-      for (const p of publicArr) {
-        // 既存に同名 or 近接があればスキップ（あなたのURL優先）
-        const dup = merged.find(c => c.name === p.name || isNear(c, p));
-        if (!dup) merged.push(p);
+    // ====== 統合 ======
+    function mergeData(customArr, publicArr, nearMeters) {
+      const out = [...customArr]; // カスタム優先
+      outer: for (const p of publicArr) {
+        for (const c of out) {
+          if (c.name === p.name) continue outer;
+          if (Number.isFinite(c.lat) && Number.isFinite(c.lng) &&
+              Number.isFinite(p.lat) && Number.isFinite(p.lng)) {
+            const d = metersBetween(c, p);
+            if (d <= nearMeters) continue outer; // 近接＝同一とみなしスキップ
+          }
+        }
+        out.push(p);
       }
-      return merged;
+      return out;
     }
 
-    // ===== メイン処理 =====
+    // ====== I/O：ファイル/テキスト ======
+    async function parseFile(file) {
+      const text = await file.text();
+      const name = file.name.toLowerCase();
+      if (name.endsWith(".json") || name.endsWith(".geojson")) {
+        try {
+          const obj = JSON.parse(text);
+          if (obj?.type === "FeatureCollection") {
+            const arr = [];
+            for (const f of (obj.features||[])) {
+              if (f.geometry?.type === "Point") {
+                const [lng, lat] = f.geometry.coordinates || [];
+                const props = f.properties || {};
+                const norm = normFromCustom({ name: props.name||props.title||props.名称, lat, lng, url: props.url||props.link, address: props.address||props.住所 });
+                if (norm) arr.push(norm);
+              }
+            }
+            return arr;
+          } else if (Array.isArray(obj)) {
+            return obj.map(normFromCustom).filter(Boolean);
+          } else {
+            showToast("JSON形式が想定外です"); return [];
+          }
+        } catch(e) { showToast("JSONの解析に失敗しました"); return []; }
+      } else {
+        // CSV/TSV
+        const isTSV = name.endsWith(".tsv");
+        const sep = isTSV ? "\t" : ",";
+        const lines = text.replace(/\r\n?/g,"\n").split("\n").filter(l=>l.trim()!=="");
+        if (!lines.length) return [];
+        const header = lines[0].split(sep).map(s=>s.trim());
+        const idx = (k)=>header.findIndex(h=>h.toLowerCase()===k);
+        const iName = idx("name")>=0?idx("name"):idx("名称");
+        const iLat  = idx("lat")>=0?idx("lat"):idx("latitude");
+        const iLng  = idx("lng")>=0?idx("lng"):(idx("lon")>=0?idx("lon"):idx("longitude"));
+        const iUrl  = idx("url")>=0?idx("url"):(idx("link")>=0?idx("link"):idx("説明url"));
+        const iAddr = idx("address")>=0?idx("address"):idx("住所");
+        const out=[];
+        for (let i=1;i<lines.length;i++){
+          const cols = lines[i].split(sep);
+          const norm = normFromCustom({
+            name: iName>=0?cols[iName]:undefined,
+            lat:  iLat>=0?cols[iLat]:undefined,
+            lng:  iLng>=0?cols[iLng]:undefined,
+            url:  iUrl>=0?cols[iUrl]:undefined,
+            address:iAddr>=0?cols[iAddr]:undefined,
+          });
+          if (norm) out.push(norm);
+        }
+        return out;
+      }
+    }
+
+    // ====== メイン処理 ======
+    let currentNear = DEFAULT_NEAR_M;
+
     async function reloadData() {
       clearMarkers();
       showToast("読込中…");
+      const kw = ($("kw").value||"").trim();
 
-      const mode = $("sourceSel").value; // mix/custom/public/tourism/cultural_property
-      const kw = ($("kw").value || "").trim();
-
-      // 1) カスタム
+      // カスタム
       const custom = loadCustom();
 
-      // 2) 公的
-      let pub = [];
+      // public
+      let publicRows = [];
+      const mode = $("sourceSel")?.value || "mix";
       try {
         const tasks = [];
-        if (mode === "public" || mode === "tourism" || mode === "mix") tasks.push(loadTourism());
-        if (mode === "public" || mode === "cultural_property" || mode === "mix") tasks.push(loadCulturalProperty());
+        if (mode==="public" || mode==="tourism" || mode==="mix") tasks.push(loadTourism());
+        if (mode==="public" || mode==="cultural_property" || mode==="mix") tasks.push(loadCulturalProperty());
         const settled = await Promise.allSettled(tasks);
-        pub = settled.flatMap(s => s.status === "fulfilled" ? s.value : []);
-      } catch(e) {
-        console.warn(e);
-      }
+        publicRows = settled.flatMap(s=>s.status==="fulfilled"?s.value:[]);
+        if (mode==="tourism") publicRows = publicRows.filter(r=>r.source==="tourism");
+        if (mode==="cultural_property") publicRows = publicRows.filter(r=>r.source==="cultural_property");
+        if (mode==="custom") publicRows = [];
+      } catch(e) { console.warn(e); }
 
-      // 3) 結合
-      let rows;
-      if (mode === "custom") {
-        rows = custom;
-      } else if (mode === "public") {
-        rows = pub;
-      } else if (mode === "tourism") {
-        rows = pub.filter(r => r.source === "tourism");
-      } else if (mode === "cultural_property") {
-        rows = pub.filter(r => r.source === "cultural_property");
-      } else { // mix
-        rows = mergeData(custom, pub);
-      }
+      let rows = (mode==="custom") ? custom
+              : (mode==="public") ? publicRows
+              : mergeData(custom, publicRows, currentNear);
 
-      // 4) キーワード
       if (kw) rows = rows.filter(r => r.name.includes(kw));
-
       addMarkers(rows);
     }
 
-    // ===== イベント =====
+    // ====== 起動・UIイベント ======
     window.addEventListener("DOMContentLoaded", () => {
       initMap();
 
-      // 前回のカスタム JSON をテキストエリアに復元（任意）
+      // 検索
+      $("kw").addEventListener("keydown", e => { if (e.key==="Enter") reloadData(); });
+
+      // 開発パネル内のUI
+      $("btnClose").addEventListener("click", closeDev);
+      $("btnReload").addEventListener("click", reloadData);
+      $("nearSel").addEventListener("change", (e)=>{ currentNear = parseInt(e.target.value || DEFAULT_NEAR_M, 10); });
+
       const prev = loadCustom();
       if (prev.length) $("customText").value = JSON.stringify(prev, null, 2);
 
-      $("reloadBtn").addEventListener("click", reloadData);
-      $("sourceSel").addEventListener("change", reloadData);
-      $("kw").addEventListener("keydown", (e)=>{ if (e.key==="Enter") reloadData(); });
-
       $("applyCustomBtn").addEventListener("click", () => {
-        const arr = parseTextarea();
-        saveCustom(arr);
-        showToast(`カスタム ${arr.length}件を保存しました`);
+        try {
+          const txt = $("customText").value.trim();
+          const obj = txt ? JSON.parse(txt) : [];
+          if (!Array.isArray(obj)) { showToast("JSONは配列にしてください"); return; }
+          const normed = obj.map(normFromCustom).filter(Boolean);
+          saveCustom(normed);
+          $("customText").value = JSON.stringify(normed, null, 2);
+          showToast(`カスタム ${normed.length}件を保存しました`);
+          reloadData();
+        } catch(e){ showToast("JSONの解析に失敗しました"); }
+      });
+
+      $("clearCustomBtn").addEventListener("click", () => {
+        saveCustom([]);
+        $("customText").value = "";
+        showToast("カスタムを削除しました");
         reloadData();
       });
 
@@ -395,23 +416,16 @@
         if (!f) { showToast("ファイルを選択してください"); return; }
         const arr = await parseFile(f);
         if (!arr.length) { showToast("取り込めるレコードがありませんでした"); return; }
-        // 既存＋読み込み分をマージ（座標＆名前重複はあなた優先）
+        // 取り込み分を優先（既存と統合）
         const cur = loadCustom();
-        const merged = mergeData(arr, cur); // 取り込み分が先＝優先
+        const merged = mergeData(arr, cur, currentNear);
         saveCustom(merged);
         $("customText").value = JSON.stringify(merged, null, 2);
         showToast(`ファイルから ${arr.length}件を取り込みました`);
         reloadData();
       });
 
-      $("clearCustomBtn").addEventListener("click", () => {
-        saveCustom([]);
-        $("customText").value = "";
-        showToast("カスタムデータを削除しました");
-        reloadData();
-      });
-
-      // 初回ロード
+      // 初回描画
       reloadData();
     });
   </script>
