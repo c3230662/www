@@ -1,363 +1,402 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"/>
-<title>大垣市の神社マップ（文章インストール＆住所ジャンプ対応）</title>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-<style>
-  :root { color-scheme: light dark; }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif}
-  header{padding:.6rem 1rem;border-bottom:1px solid #e5e5e5;display:grid;grid-template-columns:1fr auto auto;gap:.6rem;align-items:center}
-  header h1{margin:0;font-size:1rem;font-weight:600}
-  .ctl{display:flex;gap:.5rem;flex-wrap:wrap}
-  input[type="text"]{font-size:.95rem;padding:.4rem .55rem;border-radius:.5rem;border:1px solid #ccc;background:transparent}
-  .btn{font-size:.9rem;padding:.38rem .65rem;border-radius:.5rem;border:1px solid #ccc;background:transparent;cursor:pointer}
-  #map{height:calc(100vh - 64px)}
-  .legend{position:absolute;right:10px;top:74px;z-index:1000;background:rgba(255,255,255,.9);padding:.45rem .55rem;border-radius:.55rem;box-shadow:0 2px 8px rgba(0,0,0,.1);font-size:.85rem}
-  .toast{position:fixed;z-index:1100;left:50%;transform:translateX(-50%);bottom:12px;background:rgba(0,0,0,.74);color:#fff;padding:.55rem .8rem;border-radius:.5rem;font-size:.85rem;display:none}
-  .popup h3{margin:0 0 .3rem;font-size:1rem;line-height:1.2}
-  .popup p{margin:.25rem 0}
-  .desc{white-space:pre-wrap}
-  .hint{font-size:.82rem;opacity:.75}
-  .form-row{display:grid;gap:.35rem;margin:.35rem 0}
-  .form-row input,.form-row textarea{width:100%;font-size:.9rem;padding:.45rem .55rem;border-radius:.45rem;border:1px solid #ccc;background:transparent}
-  .form-actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.4rem}
-  .del{color:#b91c1c;text-decoration:underline;cursor:pointer}
-
-  /* 文章インストールモーダル */
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:1200;align-items:center;justify-content:center}
-  .modal-wrap{width:min(1100px,94vw);max-height:88vh;overflow:auto;background:#fff;color:#111;border-radius:.8rem;box-shadow:0 16px 48px rgba(0,0,0,.25);padding:1rem 1rem 1.2rem}
-  .modal-head{display:flex;gap:.75rem;align-items:center;margin-bottom:.6rem}
-  .modal-head h2{margin:0;font-size:1.05rem}
-  .modal-head .sub{margin-left:auto;font-size:.85rem;opacity:.7}
-  textarea.big{width:100%;min-height:260px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9rem;padding:.7rem;border:1px solid #ddd;border-radius:.5rem;background:#fafafa}
-  .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
-  .progress{height:10px;background:#eee;border-radius:999px;overflow:hidden}
-  .bar{height:100%;width:0;background:#2d7ef7;transition:width .2s}
-  @media (prefers-color-scheme: dark){
-    .legend{background:rgba(23,24,27,.9);color:#e9eaed}
-    .modal-wrap{background:#131416;color:#e9eaed}
-    textarea.big{background:#0f1114;border-color:#2a2d32;color:#dfe2e6}
-    .form-row input,.form-row textarea{border-color:#2a2d32;color:#e9eaed}
-  }
-</style>
+  <meta charset="utf-8" />
+  <title>大垣市 神社メモマップ（シンプル版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto,
+        "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    }
+    header {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid #e5e5e5;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.6rem;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .ctl {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    input[type="text"] {
+      font-size: 0.9rem;
+      padding: 0.38rem 0.55rem;
+      border-radius: 0.5rem;
+      border: 1px solid #ccc;
+      background: transparent;
+    }
+    .btn {
+      font-size: 0.9rem;
+      padding: 0.38rem 0.65rem;
+      border-radius: 0.5rem;
+      border: 1px solid #ccc;
+      background: transparent;
+      cursor: pointer;
+    }
+    .btn.on {
+      background: #16a34a33;
+      border-color: #16a34a;
+    }
+    #map {
+      height: calc(100vh - 60px);
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 12px;
+      background: rgba(0, 0, 0, 0.78);
+      color: #fff;
+      padding: 0.5rem 0.8rem;
+      border-radius: 0.5rem;
+      font-size: 0.82rem;
+      display: none;
+      z-index: 1000;
+    }
+    .popup h3 {
+      margin: 0 0 0.3rem;
+      font-size: 1rem;
+    }
+    .popup p {
+      margin: 0.25rem 0;
+    }
+    .desc {
+      white-space: pre-wrap;
+    }
+    .hint {
+      font-size: 0.8rem;
+      opacity: 0.75;
+    }
+    .form-row {
+      display: grid;
+      gap: 0.3rem;
+      margin: 0.3rem 0;
+    }
+    .form-row input,
+    .form-row textarea {
+      width: 100%;
+      font-size: 0.9rem;
+      padding: 0.4rem 0.5rem;
+      border-radius: 0.45rem;
+      border: 1px solid #ccc;
+      background: transparent;
+    }
+    .form-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      margin-top: 0.3rem;
+    }
+    .del {
+      color: #b91c1c;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    @media (prefers-color-scheme: dark) {
+      .form-row input,
+      .form-row textarea {
+        border-color: #2a2d32;
+        color: #e9eaed;
+      }
+    }
+  </style>
 </head>
 <body>
-<header>
-  <h1>大垣市の神社マップ</h1>
-  <div class="ctl">
-    <input id="kw" type="text" placeholder="名称で絞り込み（例：八幡）"/>
-    <button id="btnInstall" class="btn" title="Alt + I でも開きます">文章インストール</button>
-  </div>
-  <div class="ctl">
-    <input id="jumpName" type="text" placeholder="名称（任意）"/>
-    <input id="jumpAddr" type="text" placeholder="住所で座標へ（例：大垣市林町）"/>
-    <button id="btnJump" class="btn">座標へ</button>
-  </div>
-</header>
-
-<div id="map" role="region" aria-label="地図"></div>
-<div class="legend">出典：BODIK WAPI（tourism / cultural_property）＋あなたのデータ。重複150mは統合し、あなたのデータを優先。</div>
-<div id="toast" class="toast"></div>
-
-<!-- 文章インストール -->
-<div id="modal" class="modal" aria-hidden="true">
-  <div class="modal-wrap" role="dialog" aria-modal="true" aria-label="文章インストール">
-    <div class="modal-head">
-      <h2>文章インストール</h2>
-      <div class="sub">Alt + I で閉/開</div>
+  <header>
+    <h1>大垣市 神社メモマップ</h1>
+    <div class="ctl">
+      <input id="jumpName" type="text" placeholder="名称（任意）" />
+      <input id="jumpAddr" type="text" placeholder="住所（例：大垣市林町）" />
+      <button id="btnJump" class="btn">この住所で追加</button>
+      <button
+        id="createToggle"
+        class="btn"
+        aria-pressed="false"
+        title="作成モードON中は地図クリックで追加"
+      >
+        作成モード OFF
+      </button>
     </div>
-    <p class="hint" style="margin:.2rem 0 .6rem">
-      自由文や行テキストから <b>名称・住所・URL・説明</b> を抽出します。書き方の例：<br>
-      ・<code>○○神社｜岐阜県大垣市○○｜https://example.com｜祭神や沿革…</code><br>
-      ・<code>名称: ○○神社 住所: 岐阜県大垣市○○ URL: … 説明: …</code><br>
-      ・行ごとに <code>名称,住所,URL(任意),説明(任意)</code> でもOK。空行で区切ると複数件に対応。
-    </p>
-    <textarea id="freeText" class="big" placeholder="ここに文章を貼り付け"></textarea>
-    <div class="row" style="margin-top:.6rem">
-      <button id="btnParse" class="btn">解析 → プレビュー</button>
-      <button id="btnApply" class="btn">住所を座標に変換して保存</button>
-      <div class="progress" style="flex:1;max-width:360px"><div id="bar" class="bar"></div></div>
-    </div>
-    <div id="preview" class="hint" style="margin-top:.6rem"></div>
-  </div>
-</div>
+  </header>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.js"></script>
-<script>
-/* ====== 基本設定 ====== */
-const CITY_NAME = "大垣市";
-const WAPI_BASE = "https://wapi.bodik.jp";
-const MAX_RESULTS = 2000;
-const NEAR_M = 150;
-const JINJA_KEYS = ["神社","神社・仏閣","寺社","宗教施設"];
-const FALLBACK_OGAKI = (name)=>`https://www.ogakikanko.jp/?s=${encodeURIComponent(name||"")}`;
-const LS_KEY = "ogaki_jinja_custom_v6";
+  <div id="map"></div>
+  <div id="toast" class="toast"></div>
 
-/* ====== ユーティリティ ====== */
-const $ = (id)=>document.getElementById(id);
-const showToast = (msg,ms=2200)=>{ const t=$("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none",ms); };
-const pick = (o,ks)=>{ for(const k of ks){ if(o?.[k]!=null && o[k]!=="") return o[k]; } };
-const toNum = (v)=>{ const s=typeof v==="string"?v.replace(/[^\d\.\-]/g,""):v; const n=parseFloat(s); return Number.isFinite(n)?n:undefined; };
-const esc = (s)=>String(s??"").replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
-const saveCustom=(arr)=>localStorage.setItem(LS_KEY,JSON.stringify(arr||[]));
-const loadCustom=()=>{ try{return JSON.parse(localStorage.getItem(LS_KEY)||"[]");}catch{return[];} };
-const metersBetween=(a,b)=>{ const R=6371000,toRad=d=>d*Math.PI/180; const dLat=toRad(b.lat-a.lat),dLng=toRad(b.lng-a.lng); const s=Math.sin(dLat/2)**2+Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(s)); };
-
-/* ====== 判定・正規化 ====== */
-const looksLikeJinja=(rec)=>{ const name=(pick(rec,["名称","施設名","name","title"])||"").toString(); const cat=(pick(rec,["分類","カテゴリ","ジャンル","category","genre","種別"])||"").toString(); return JINJA_KEYS.some(k=>cat.includes(k)) || name.includes("神社"); };
-const extractLatLng=(rec)=>{ const lat=toNum(pick(rec,["緯度","latitude","lat","Lat","LAT","Y"])); const lng=toNum(pick(rec,["経度","longitude","lon","lng","Long","LON","X"])); return (Number.isFinite(lat)&&Number.isFinite(lng))?[lat,lng]:undefined; };
-const normFromPublic=(rec,source)=>{ const name=pick(rec,["名称","施設名","name","title"])||"(名称未設定)"; const addr=pick(rec,["住所","所在地","address"])||""; const url=pick(rec,["説明URL","URL","url","link","website"])||FALLBACK_OGAKI(name); const ll=extractLatLng(rec); if(!ll) return null; return {name,lat:ll[0],lng:ll[1],url,address:addr,desc:"",source}; };
-
-/* ====== BODIK ====== */
-async function fetchWapi(apiname,params){ const url=new URL(`${WAPI_BASE}/${apiname}`); Object.entries(params||{}).forEach(([k,v])=>url.searchParams.set(k,v)); const res=await fetch(url); if(!res.ok) throw new Error(`WAPI ${apiname} ${res.status}`); return res.json(); }
-async function loadTourism(){ const d=await fetchWapi("tourism",{select_type:"data",municipalityName:CITY_NAME,maxResults:String(MAX_RESULTS)}); const rows=Array.isArray(d)?d:(d.records||d.data||d.result||[]); return rows.filter(looksLikeJinja).map(r=>normFromPublic(r,"tourism")).filter(Boolean); }
-async function loadCulturalProperty(){ const d=await fetchWapi("cultural_property",{select_type:"data",municipalityName:CITY_NAME,maxResults:String(MAX_RESULTS)}); const rows=Array.isArray(d)?d:(d.records||d.data||d.result||[]); return rows.filter(looksLikeJinja).map(r=>normFromPublic(r,"cultural_property")).filter(Boolean); }
-
-/* ====== マージ ====== */
-function mergeData(customArr, publicArr){
-  const out=[...customArr];
-  outer: for(const p of publicArr){
-    for(const c of out){
-      if(c.name===p.name) continue outer;
-      if(Number.isFinite(c.lat)&&Number.isFinite(c.lng)&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)){
-        if(metersBetween(c,p)<=NEAR_M) continue outer;
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // ===== ユーティリティ =====
+    const $ = (id) => document.getElementById(id);
+    const showToast = (msg, ms = 2200) => {
+      const t = $("toast");
+      t.textContent = msg;
+      t.style.display = "block";
+      setTimeout(() => (t.style.display = "none"), ms);
+    };
+    const esc = (s) =>
+      String(s ?? "").replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+      );
+    const LS_KEY = "ogaki_simple_anchors";
+    const saveData = (arr) =>
+      localStorage.setItem(LS_KEY, JSON.stringify(arr || []));
+    const loadData = () => {
+      try {
+        return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+      } catch {
+        return [];
       }
-    }
-    out.push(p);
-  }
-  return out;
-}
+    };
 
-/* ====== 地図 ====== */
-let map, cluster, tempMarker;
-function initMap(){
-  map = L.map("map").setView([35.366,136.616],12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
-  cluster = L.markerClusterGroup({ disableClusteringAtZoom: 16 });
-  map.addLayer(cluster);
-}
-function clearMarkers(){ cluster?.clearLayers(); }
+    // ===== 地図初期化 =====
+    let map;
+    let markerLayer;
+    let createMode = false;
+    let tempMarker = null;
 
-function popupHtml(r, idx){
-  const name=esc(r.name||"(名称未設定)"), addr=esc(r.address||""), url=esc(r.url||""), desc=esc(r.desc||"");
-  const descBlock = desc?`<div class="desc">${desc}</div>`:`<div class="hint">（説明は未入力）</div>`;
-  const edit = r.source==="custom" ? `<div class="hint"><a class="del" data-del="${idx}">このピンを削除</a></div>` : `<div class="hint">source: ${r.source}</div>`;
-  return `<div class="popup"><h3>${name}</h3>${addr?`<p>${addr}</p>`:""}${url?`<p><a href="${url}" target="_blank" rel="noopener">解説ページを開く</a></p>`:""}${descBlock}${edit}</div>`;
-}
-function bindDeleteOnOpen(rec, idx){
-  map.once("popupopen", (ev)=>{
-    const el=ev.popup.getElement(); const del=el?.querySelector("[data-del]");
-    if(del){ del.addEventListener("click",()=>{ const all=loadCustom().filter(x=>!(x.lat===rec.lat && x.lng===rec.lng && x.name===rec.name)); saveCustom(all); showToast("削除しました"); reloadData(); }); }
-  });
-}
+    function initMap() {
+      // 大垣市役所あたり
+      map = L.map("map").setView([35.366, 136.62], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
 
-function addMarkers(records){
-  cluster.clearLayers();
-  records.forEach((r,i)=>{
-    if(!Number.isFinite(r.lat)||!Number.isFinite(r.lng)) return;
-    const m=L.marker([r.lat,r.lng]);
-    m.bindPopup(popupHtml(r,i),{maxWidth:360});
-    m.on("click",()=>bindDeleteOnOpen(r,i));
-    cluster.addLayer(m);
-  });
-  try{const b=cluster.getBounds(); if(b.isValid()) map.fitBounds(b.pad(0.1));}catch{}
-  showToast(`${records.length}件表示`);
-}
+      markerLayer = L.layerGroup().addTo(map);
 
-/* ====== ジャンプ（住所→座標へ飛び仮ピン＋フォーム） ====== */
-async function geocodeOne(name,address){
-  let q = address||"";
-  if(!/大垣市/.test(q)) q=`${q} 大垣市`;
-  if(!/岐阜県/.test(q)) q=`${q} 岐阜県`;
-  const url=new URL("https://nominatim.openstreetmap.org/search");
-  url.searchParams.set("format","jsonv2"); url.searchParams.set("q",q); url.searchParams.set("countrycodes","jp"); url.searchParams.set("limit","1");
-  const res=await fetch(url,{headers:{Accept:"application/json"}});
-  if(!res.ok) throw new Error("geocode failed");
-  const j=await res.json(); if(!Array.isArray(j)||!j.length) return null;
-  const lat=parseFloat(j[0].lat), lng=parseFloat(j[0].lon);
-  if(!Number.isFinite(lat)||!Number.isFinite(lng)) return null;
-  return {name,lat,lng,address};
-}
-
-function openCreateForm(latlng, preset={}){
-  if(tempMarker){ map.removeLayer(tempMarker); tempMarker=null; }
-  tempMarker = L.marker(latlng,{draggable:true}).addTo(map);
-  const formHtml = `
-    <div class="popup">
-      <h3>ここにアンカー（説明付き保存）</h3>
-      <div class="form-row"><input id="f_name" type="text" placeholder="名称（必須）" value="${esc(preset.name||"")}"></div>
-      <div class="form-row"><input id="f_addr" type="text" placeholder="住所（任意）" value="${esc(preset.address||"")}"></div>
-      <div class="form-row"><input id="f_url"  type="text" placeholder="解説リンク（任意）" value="${esc(preset.url||"")}"></div>
-      <div class="form-row"><textarea id="f_desc" rows="4" placeholder="あなたの説明・考察（任意）">${esc(preset.desc||"")}</textarea></div>
-      <div class="form-actions">
-        <button id="f_cancel" class="btn">キャンセル</button>
-        <button id="f_save" class="btn">保存</button>
-      </div>
-      <div class="hint">※ ピンはドラッグで微調整可</div>
-    </div>`;
-  const pop=L.popup({maxWidth:380,closeOnClick:false,closeButton:true}).setLatLng(latlng).setContent(formHtml).openOn(map);
-
-  setTimeout(()=>{
-    const fName=$("f_name"), fAddr=$("f_addr"), fUrl=$("f_url"), fDesc=$("f_desc");
-    $("f_cancel")?.addEventListener("click",()=>{ if(tempMarker){map.removeLayer(tempMarker); tempMarker=null;} map.closePopup(pop); });
-    $("f_save")?.addEventListener("click",()=>{
-      const name=(fName?.value||"").trim(); if(!name){ showToast("名称を入力してください"); return; }
-      const addr=(fAddr?.value||"").trim(); const url=(fUrl?.value||"").trim(); const desc=(fDesc?.value||"").trim();
-      const p = tempMarker?.getLatLng() || latlng;
-      const cur=loadCustom();
-      const newRec={ name, address:addr, url, desc, lat:p.lat, lng:p.lng, source:"custom" };
-      // 近接/同名は置換
-      const filtered = cur.filter(c=>{
-        if(c.name===newRec.name) return false;
-        if(Number.isFinite(c.lat)&&Number.isFinite(c.lng)){ if(metersBetween(c,newRec)<=NEAR_M) return false; }
-        return true;
+      // 作成モード中はクリックでフォーム
+      map.on("click", (e) => {
+        if (!createMode) return;
+        openCreateForm(e.latlng, {});
       });
-      filtered.push(newRec); saveCustom(filtered);
-      showToast("保存しました");
-      if(tempMarker){map.removeLayer(tempMarker); tempMarker=null;}
-      map.closePopup(pop); reloadData();
+    }
+
+    // ===== ピン表示 =====
+    function renderMarkers() {
+      markerLayer.clearLayers();
+      const data = loadData();
+      data.forEach((r, idx) => {
+        if (!Number.isFinite(r.lat) || !Number.isFinite(r.lng)) return;
+        const m = L.marker([r.lat, r.lng]).addTo(markerLayer);
+        m.bindPopup(buildPopupHtml(r, idx), { maxWidth: 360 });
+        m.on("popupopen", (ev) => {
+          const el = ev.popup.getElement();
+          const del = el?.querySelector(".del");
+          if (del) {
+            del.addEventListener("click", () => {
+              const all = loadData().filter((x, i) => i !== idx);
+              saveData(all);
+              showToast("削除しました");
+              renderMarkers();
+              map.closePopup();
+            });
+          }
+        });
+      });
+    }
+
+    function buildPopupHtml(r, idx) {
+      const name = esc(r.name || "(名称未設定)");
+      const addr = esc(r.address || "");
+      const url = esc(r.url || "");
+      const desc = esc(r.desc || "");
+      const descBlock = desc
+        ? '<div class="desc">' + desc + "</div>"
+        : '<div class="hint">（説明は未入力）</div>';
+      const urlBlock = url
+        ? '<p><a href="' +
+          url +
+          '" target="_blank" rel="noopener">解説ページを開く</a></p>'
+        : "";
+      return (
+        '<div class="popup">' +
+        "<h3>" +
+        name +
+        "</h3>" +
+        (addr ? "<p>" + addr + "</p>" : "") +
+        urlBlock +
+        descBlock +
+        '<div class="hint"><a class="del">このピンを削除</a></div>' +
+        "</div>"
+      );
+    }
+
+    // ===== 追加フォーム =====
+    function openCreateForm(latlng, preset) {
+      if (tempMarker) {
+        map.removeLayer(tempMarker);
+        tempMarker = null;
+      }
+      tempMarker = L.marker(latlng, { draggable: true }).addTo(map);
+
+      const formHtml =
+        '<div class="popup">' +
+        "<h3>ここに神社メモを追加</h3>" +
+        '<div class="form-row"><input id="f_name" type="text" placeholder="名称（必須）" value="' +
+        esc(preset.name || "") +
+        '"></div>' +
+        '<div class="form-row"><input id="f_addr" type="text" placeholder="住所（任意）" value="' +
+        esc(preset.address || "") +
+        '"></div>' +
+        '<div class="form-row"><input id="f_url" type="text" placeholder="解説リンク（任意）" value="' +
+        esc(preset.url || "") +
+        '"></div>' +
+        '<div class="form-row"><textarea id="f_desc" rows="4" placeholder="あなたの説明・考察（任意）">' +
+        esc(preset.desc || "") +
+        "</textarea></div>" +
+        '<div class="form-actions">' +
+        '<button id="f_cancel" class="btn">キャンセル</button>' +
+        '<button id="f_save" class="btn">保存</button>' +
+        "</div>" +
+        "</div>";
+
+      const pop = L.popup({
+        maxWidth: 380,
+        closeOnClick: false,
+        closeButton: true,
+      })
+        .setLatLng(latlng)
+        .setContent(formHtml)
+        .openOn(map);
+
+      setTimeout(() => {
+        const fName = document.getElementById("f_name");
+        const fAddr = document.getElementById("f_addr");
+        const fUrl = document.getElementById("f_url");
+        const fDesc = document.getElementById("f_desc");
+        const fCancel = document.getElementById("f_cancel");
+        const fSave = document.getElementById("f_save");
+
+        fName && fName.focus();
+
+        fCancel &&
+          fCancel.addEventListener("click", () => {
+            if (tempMarker) {
+              map.removeLayer(tempMarker);
+              tempMarker = null;
+            }
+            map.closePopup(pop);
+          });
+
+        fSave &&
+          fSave.addEventListener("click", () => {
+            const name = (fName?.value || "").trim();
+            if (!name) {
+              showToast("名称を入力してください");
+              return;
+            }
+            const addr = (fAddr?.value || "").trim();
+            const url = (fUrl?.value || "").trim();
+            const desc = (fDesc?.value || "").trim();
+            const p = tempMarker?.getLatLng() || latlng;
+
+            const cur = loadData();
+            cur.push({
+              name,
+              address: addr,
+              url,
+              desc,
+              lat: p.lat,
+              lng: p.lng,
+            });
+            saveData(cur);
+            showToast("保存しました");
+            if (tempMarker) {
+              map.removeLayer(tempMarker);
+              tempMarker = null;
+            }
+            map.closePopup(pop);
+            renderMarkers();
+          });
+      }, 0);
+    }
+
+    // ===== ジオコーディング（住所→座標） =====
+    async function geocodeAddress(name, address) {
+      if (!address) return null;
+      let q = address;
+      if (!/大垣市/.test(q)) q += " 大垣市";
+      if (!/岐阜県/.test(q)) q += " 岐阜県";
+
+      const url = new URL("https://nominatim.openstreetmap.org/search");
+      url.searchParams.set("format", "jsonv2");
+      url.searchParams.set("q", q);
+      url.searchParams.set("countrycodes", "jp");
+      url.searchParams.set("limit", "1");
+
+      const res = await fetch(url.toString(), {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return null;
+      const j = await res.json();
+      if (!Array.isArray(j) || j.length === 0) return null;
+      const lat = parseFloat(j[0].lat);
+      const lng = parseFloat(j[0].lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      return { name, address: q, lat, lng };
+    }
+
+    // ===== 起動・イベント =====
+    window.addEventListener("DOMContentLoaded", () => {
+      initMap();
+      renderMarkers();
+
+      // 作成モード切り替え
+      const toggleBtn = $("createToggle");
+      toggleBtn.addEventListener("click", () => {
+        createMode = !createMode;
+        toggleBtn.classList.toggle("on", createMode);
+        toggleBtn.textContent = createMode
+          ? "作成モード ON"
+          : "作成モード OFF";
+        toggleBtn.setAttribute("aria-pressed", String(createMode));
+        showToast(
+          createMode
+            ? "作成モード：地図をクリックで追加できます"
+            : "作成モードを終了しました"
+        );
+      });
+
+      // 住所でジャンプして追加
+      $("btnJump").addEventListener("click", async () => {
+        const name = ($("jumpName").value || "").trim();
+        const addr = ($("jumpAddr").value || "").trim();
+        if (!addr) {
+          showToast("住所を入力してください");
+          return;
+        }
+        showToast("座標を検索中…");
+        const g = await geocodeAddress(name, addr);
+        if (!g) {
+          showToast("座標が見つかりませんでした");
+          return;
+        }
+        map.setView([g.lat, g.lng], 17);
+        openCreateForm({ lat: g.lat, lng: g.lng }, { name: g.name, address: g.address });
+      });
+
+      // Enterでジャンプ
+      $("jumpAddr").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") $("btnJump").click();
+      });
     });
-  },0);
-}
-
-/* ====== 文章インストール（自由文→抽出→ジオコーディング→保存） ====== */
-function parseFreeText(txt){
-  const blocks = txt.replace(/\r\n?/g,"\n").split(/\n\s*\n+/); // 空行で分割
-  const items=[];
-  const patternKey = /(?:名称|名前|name)\s*[:：]\s*(.+?)\s*(?=$|住所|URL|説明)/i;
-  const patternAddr= /(?:住所|address)\s*[:：]\s*(.+?)\s*(?=$|URL|説明)/i;
-  const patternUrl = /(?:URL|リンク)\s*[:：]\s*(https?:\/\/\S+)/i;
-  const patternDesc= /(?:説明|解説|考察|memo)\s*[:：]\s*([\s\S]+)/i;
-
-  for(const raw of blocks){
-    const line = raw.trim();
-    if(!line) continue;
-
-    // 1) パイプ/縦棒区切り  名称｜住所｜URL｜説明
-    if(line.includes("｜") || line.includes("|")){
-      const seg = line.split(/｜|\|/).map(s=>s.trim());
-      const [name, address, url, ...rest] = seg;
-      if(name && address){
-        items.push({name, address, url: (url||"").startsWith("http")?url:"", desc: rest?.join("｜")||""});
-        continue;
-      }
-    }
-    // 2) CSV風  名称,住所,URL?,説明?
-    if(line.includes(",")){
-      const seg=line.split(",").map(s=>s.trim());
-      if(seg[0] && seg[1]){
-        items.push({name:seg[0], address:seg[1], url: seg[2]||"", desc: seg.slice(3).join(",")||""});
-        continue;
-      }
-    }
-    // 3) ラベル付き  名称:.. 住所:.. URL:.. 説明:..
-    const nameM=line.match(patternKey);
-    const addrM=line.match(patternAddr);
-    if(nameM && addrM){
-      const urlM=line.match(patternUrl);
-      const descM=line.match(patternDesc);
-      items.push({name:nameM[1].trim(), address:addrM[1].trim(), url:urlM?urlM[1].trim():"", desc:descM?descM[1].trim():""});
-      continue;
-    }
-    // 4) 単一行に「神社」と住所らしき文字が並ぶケースの緩和抽出
-    if(/神社/.test(line) && /市|町|丁目|岐阜県|大垣/.test(line)){
-      const name=line.split(/[\s,|｜]/).find(w=>/神社/.test(w))||"";
-      const address=line.replace(/.*?(岐阜県|大垣市)/, "$1");
-      if(name && address){ items.push({name, address}); continue; }
-    }
-  }
-  return items;
-}
-
-async function geocodeBatch(rows, onProgress){
-  const out=[];
-  for(let i=0;i<rows.length;i++){
-    const r=rows[i];
-    if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ out.push(r); onProgress(i+1,rows.length); continue; }
-    if(!r.address){ out.push(r); onProgress(i+1,rows.length); continue; }
-    try{
-      const g=await geocodeOne(r.name, r.address);
-      if(g){ out.push({...r, lat:g.lat, lng:g.lng}); } else { out.push(r); }
-    }catch{ out.push(r); }
-    onProgress(i+1,rows.length);
-    await new Promise(res=>setTimeout(res,1200)); // レート制限
-  }
-  return out;
-}
-
-/* ====== メイン描画 ====== */
-async function reloadData(){
-  clearMarkers();
-  const kw = ($("kw").value||"").trim();
-  const custom = loadCustom();
-  let pub=[];
-  try{
-    const settled=await Promise.allSettled([loadTourism(),loadCulturalProperty()]);
-    pub=settled.flatMap(s=>s.status==="fulfilled"?s.value:[]);
-  }catch(e){ console.warn(e); }
-  let rows=mergeData(custom,pub);
-  if(kw) rows=rows.filter(r=>(r.name||"").includes(kw));
-  addMarkers(rows);
-}
-
-/* ====== 起動・イベント ====== */
-window.addEventListener("DOMContentLoaded", ()=>{
-  initMap();
-
-  $("kw").addEventListener("keydown",e=>{ if(e.key==="Enter") reloadData(); });
-
-  // 住所ジャンプ
-  $("btnJump").addEventListener("click", async ()=>{
-    const name=($("jumpName").value||"").trim();
-    const addr=($("jumpAddr").value||"").trim();
-    if(!addr){ showToast("住所を入力してください"); return; }
-    showToast("座標を検索中…");
-    const g=await geocodeOne(name,addr);
-    if(!g){ showToast("座標が見つかりませんでした"); return; }
-    map.setView([g.lat,g.lng], 17);
-    openCreateForm({lat:g.lat,lng:g.lng},{name:g.name,address:g.address});
-  });
-
-  // 文章インストール（Alt + I）
-  const modal=$("modal"); const bar=$("bar");
-  const openModal=()=>{ modal.style.display="flex"; modal.setAttribute("aria-hidden","false"); };
-  const closeModal=()=>{ modal.style.display="none"; modal.setAttribute("aria-hidden","true"); };
-  window.addEventListener("keydown",(e)=>{ if(e.altKey && (e.key==="i"||e.key==="I")){ e.preventDefault(); (modal.style.display==="flex"?closeModal():openModal()); } });
-  $("btnInstall").addEventListener("click", openModal);
-
-  // 解析プレビュー
-  $("btnParse").addEventListener("click", ()=>{
-    const txt=$("freeText").value||"";
-    const items=parseFreeText(txt);
-    $("preview").innerHTML = items.length
-      ? `抽出件数：<b>${items.length}</b> 件<br>${items.slice(0,10).map(x=>`・${esc(x.name||"？")} / ${esc(x.address||"住所なし")} ${x.url?`/ ${esc(x.url)}`:""}`).join("<br>")}${items.length>10?"<br>…":""}`
-      : "抽出できる項目が見つかりませんでした。書式例を参考にしてください。";
-  });
-
-  // 住所→座標→保存
-  $("btnApply").addEventListener("click", async ()=>{
-    const txt=$("freeText").value||"";
-    const base=parseFreeText(txt);
-    if(!base.length){ showToast("抽出できませんでした"); return; }
-    const update=(done,total)=>{ bar.style.width=`${Math.round(done*100/total)}%`; };
-    showToast("住所を座標に変換中…（少量・低頻度推奨）",3000);
-    const geo=await geocodeBatch(base, update);
-    const cur=loadCustom();
-    const merged = mergeData(geo, cur); // 新規を優先
-    saveCustom(merged);
-    bar.style.width="0%";
-    showToast(`保存：${geo.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).length}件を座標化`,2600);
-    closeModal(); reloadData();
-  });
-
-  reloadData();
-});
-</script>
+  </script>
 </body>
 </html>
