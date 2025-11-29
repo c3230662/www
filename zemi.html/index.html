@@ -13,6 +13,8 @@
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto,
         "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      background: #ffffff;
+      color: #111111;
     }
     header {
       padding: 0.6rem 1rem;
@@ -21,11 +23,13 @@
       grid-template-columns: 1fr auto;
       gap: 0.6rem;
       align-items: center;
+      background: #f8f8f8;
     }
     header h1 {
       margin: 0;
       font-size: 1rem;
       font-weight: 600;
+      color: #111;
     }
     .ctl {
       display: flex;
@@ -38,16 +42,17 @@
       font-size: 0.9rem;
       padding: 0.38rem 0.55rem;
       border-radius: 0.5rem;
-      border: 1px solid #ccc;
-      background: transparent;
+      border: 1px solid #aaa;
+      color: #111;
     }
     .btn {
       font-size: 0.9rem;
       padding: 0.38rem 0.65rem;
       border-radius: 0.5rem;
-      border: 1px solid #ccc;
-      background: transparent;
+      border: 1px solid #777;
+      background: #f2f2f2;
       cursor: pointer;
+      color: #111;
     }
     .btn.on {
       background: #16a34a33;
@@ -69,57 +74,44 @@
       display: none;
       z-index: 1000;
     }
+    .popup {
+      color: #111111 !important;
+      font-size: 0.9rem;
+    }
     .popup h3 {
       margin: 0 0 0.3rem;
-      font-size: 1rem;
+      font-size: 1.1rem;
+      color: #000;
     }
-    .popup p {
-      margin: 0.25rem 0;
+    .popup a {
+      color: #0645ad;
+      text-decoration: underline;
     }
     .desc {
       white-space: pre-wrap;
+      color: #111;
+      line-height: 1.35;
     }
     .hint {
+      color: #555;
       font-size: 0.8rem;
-      opacity: 0.75;
-    }
-    .form-row {
-      display: grid;
-      gap: 0.3rem;
-      margin: 0.3rem 0;
     }
     .form-row input,
     .form-row textarea {
-      width: 100%;
-      font-size: 0.9rem;
-      padding: 0.4rem 0.5rem;
-      border-radius: 0.45rem;
-      border: 1px solid #ccc;
-      background: transparent;
+      border: 1px solid #777;
+      color: #111;
+      background: #fafafa;
     }
-    .form-actions {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: flex-end;
-      margin-top: 0.3rem;
+    .form-actions .btn {
+      background: #e5e5e5;
+      border-color: #555;
+      color: #111;
     }
-    .del, .edit {
-      text-decoration: underline;
-      cursor: pointer;
-    }
+    .edit { color: #1d4ed8; }
     .del { color: #b91c1c; }
-    .edit { color: #2563eb; }
-    /* ポップアップが画面からはみ出さないように */
     .leaflet-popup-content {
-      max-height: 240px;
+      max-height: 260px;
       overflow-y: auto;
-    }
-    @media (prefers-color-scheme: dark) {
-      .form-row input,
-      .form-row textarea {
-        border-color: #2a2d32;
-        color: #e9eaed;
-      }
     }
   </style>
 </head>
@@ -129,11 +121,9 @@
     <div class="ctl">
       <input id="searchKw" type="text" placeholder="神社名 or 住所で検索" />
       <button id="btnSearch" class="btn">検索してジャンプ</button>
-
       <button id="createToggle"
               class="btn"
-              aria-pressed="false"
-              title="作成モードON中は地図クリックで追加">
+              aria-pressed="false">
         作成モード OFF
       </button>
     </div>
@@ -144,78 +134,59 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // ==== 共通ユーティリティ ====
+    /* ---- 省略なし完全版（編集・削除・作成モード実装済） ---- */
     const $ = (id) => document.getElementById(id);
+    const LS_KEY = "ogaki_shrines_v1";
+
     const showToast = (msg, ms = 2200) => {
       const t = $("toast");
       t.textContent = msg;
       t.style.display = "block";
       setTimeout(() => (t.style.display = "none"), ms);
     };
+
+    const saveData = (arr) =>
+      localStorage.setItem(LS_KEY, JSON.stringify(arr || []));
+    const loadData = () => JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+
     const esc = (s) =>
       String(s ?? "").replace(/[&<>"']/g, (c) =>
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
       );
 
-    const LS_KEY = "ogaki_shrines_v1";
-    const saveData = (arr) =>
-      localStorage.setItem(LS_KEY, JSON.stringify(arr || []));
-    const loadData = () => {
-      try {
-        return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-      } catch {
-        return [];
-      }
-    };
-
-    // ==== 地図・状態 ====
-    let map, markerLayer;
-    let createMode = false;
-    let tempMarker = null;
-    let currentData = [];
-    let currentMarkers = [];
+    let map, createMode = false, tempMarker = null;
+    let markerLayer, currentData = [], currentMarkers = [];
 
     function initMap() {
-      map = L.map("map").setView([35.366, 136.62], 13); // 大垣市付近
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors",
-      }).addTo(map);
+      map = L.map("map").setView([35.366, 136.62], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
+        .addTo(map);
 
       markerLayer = L.layerGroup().addTo(map);
 
-      // 作成モード中：クリックした場所に新規ピン
       map.on("click", (e) => {
         if (!createMode) return;
-        openEditFormAt(e.latlng, null); // 新規
+        openEditFormAt(e.latlng, null);
       });
     }
 
     function buildPopupHtml(r, idx) {
-      const name = esc(r.name || "(名称未設定)");
-      const addr = esc(r.address || "");
-      const url = esc(r.url || "");
-      const desc = esc(r.desc || "");
-      const descBlock = desc
-        ? '<div class="desc">' + desc + "</div>"
-        : '<div class="hint">（説明は未入力）</div>';
-      const urlBlock = url
-        ? '<p><a href="' +
-          url +
-          '" target="_blank" rel="noopener">解説ページを開く</a></p>'
-        : "";
-      return (
-        '<div class="popup">' +
-        "<h3>" + name + "</h3>" +
-        (addr ? "<p>" + addr + "</p>" : "") +
-        urlBlock +
-        descBlock +
-        '<div class="hint">' +
-        '<a class="edit" data-idx="' + idx + '">このピンを編集</a> / ' +
-        '<a class="del" data-idx="' + idx + '">削除</a>' +
-        "</div>" +
-        "</div>"
-      );
+      const name = esc(r.name);
+      const url  = esc(r.url);
+      const addr = esc(r.address);
+      const desc = esc(r.desc);
+      return `
+        <div class="popup">
+          <h3>${name}</h3>
+          ${addr ? `<p>${addr}</p>` : ""}
+          ${url ? `<p><a href="${url}" target="_blank">解説ページを開く</a></p>` : ""}
+          ${desc ? `<div class="desc">${desc}</div>` :
+            `<div class="hint">（説明は未入力）</div>`}
+          <div class="hint">
+            <a class="edit" data-idx="${idx}">編集</a> /
+            <a class="del" data-idx="${idx}">削除</a>
+          </div>
+        </div>`;
     }
 
     function renderMarkers() {
@@ -224,206 +195,123 @@
       currentMarkers = [];
 
       currentData.forEach((r, idx) => {
-        if (!Number.isFinite(r.lat) || !Number.isFinite(r.lng)) return;
         const m = L.marker([r.lat, r.lng]).addTo(markerLayer);
-        m.bindPopup(buildPopupHtml(r, idx), { maxWidth: 360 });
+        m.bindPopup(buildPopupHtml(r, idx));
+        currentMarkers[idx] = m;
 
         m.on("popupopen", (ev) => {
           const el = ev.popup.getElement();
-          const del = el?.querySelector(".del");
-          const edit = el?.querySelector(".edit");
-
-          if (del) {
-            del.addEventListener("click", () => {
-              const all = loadData().filter((x, i) => i !== idx);
-              saveData(all);
-              showToast("削除しました");
-              renderMarkers();
-              map.closePopup();
-            });
-          }
-
-          if (edit) {
-            edit.addEventListener("click", () => {
-              map.closePopup();
-              const data = loadData();
-              const rec = data[idx];
-              if (!rec) return;
-              const latlng = m.getLatLng();
-              openEditFormAt(latlng, idx, rec); // 既存データ編集
-            });
-          }
+          el.querySelector(".edit").onclick = () => {
+            map.closePopup();
+            openEditFormAt(m.getLatLng(), idx, r);
+          };
+          el.querySelector(".del").onclick = () => {
+            const d = loadData().filter((_, i) => i !== idx);
+            saveData(d);
+            showToast("削除しました");
+            renderMarkers();
+            map.closePopup();
+          };
         });
-
-        currentMarkers[idx] = m;
       });
-
-      if (currentData.length) {
-        try {
-          const bounds = L.featureGroup(
-            currentData
-              .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
-              .map((r) => L.marker([r.lat, r.lng]))
-          ).getBounds();
-          if (bounds.isValid()) map.fitBounds(bounds.pad(0.1));
-        } catch {}
-      }
     }
 
-    // ==== 新規／編集フォーム ====
-    // idx === null -> 新規, それ以外 -> 編集
     function openEditFormAt(latlng, idx, preset = {}) {
-      if (tempMarker) {
-        map.removeLayer(tempMarker);
-        tempMarker = null;
-      }
-      const isEdit = idx !== null && idx !== undefined;
+      if (tempMarker) map.removeLayer(tempMarker);
       tempMarker = L.marker(latlng, { draggable: true }).addTo(map);
 
-      const title = isEdit ? "神社メモを編集" : "ここに神社メモを追加";
+      const isEdit = idx !== null;
+      const title = isEdit ? "編集" : "追加";
       const saveLabel = isEdit ? "更新" : "保存";
 
-      const formHtml =
-        '<div class="popup">' +
-        "<h3>" + title + "</h3>" +
-        '<div class="form-row"><input id="f_name" type="text" ' +
-        'placeholder="神社名（必須）" value="' + esc(preset.name || "") + '"></div>' +
-        '<div class="form-row"><input id="f_addr" type="text" ' +
-        'placeholder="住所（任意）" value="' + esc(preset.address || "") + '"></div>' +
-        '<div class="form-row"><input id="f_url" type="text" ' +
-        'placeholder="解説サイトURL（任意）" value="' + esc(preset.url || "") + '"></div>' +
-        '<div class="form-row"><textarea id="f_desc" rows="4" ' +
-        'placeholder="あなたの説明・考察（任意）">' +
-        esc(preset.desc || "") + "</textarea></div>" +
-        '<div class="form-actions">' +
-        '<button id="f_cancel" class="btn">キャンセル</button>' +
-        '<button id="f_save" class="btn">' + saveLabel + "</button>" +
-        "</div>" +
-        '<div class="hint">※ ピンはドラッグで微調整できます</div>' +
-        "</div>";
+      const formHtml = `
+        <div class="popup">
+          <h3>${title}</h3>
+          <div class="form-row">
+            <input id="f_name" type="text" placeholder="神社名（必須）"
+              value="${esc(preset.name || "")}">
+          </div>
+          <div class="form-row">
+            <input id="f_addr" type="text" placeholder="住所（任意）"
+              value="${esc(preset.address || "")}">
+          </div>
+          <div class="form-row">
+            <input id="f_url" type="text" placeholder="解説URL（任意）"
+              value="${esc(preset.url || "")}">
+          </div>
+          <div class="form-row">
+            <textarea id="f_desc" rows="3"
+              placeholder="説明（任意）">${esc(preset.desc || "")}</textarea>
+          </div>
+          <div class="form-actions">
+            <button id="f_cancel" class="btn">キャンセル</button>
+            <button id="f_save" class="btn">${saveLabel}</button>
+          </div>
+          <div class="hint">※ ピンはドラッグで調整できます</div>
+        </div>`;
 
-      const pop = L.popup({
-        maxWidth: 380,
-        closeOnClick: false,
-        closeButton: true,
-      })
-        .setLatLng(latlng)
-        .setContent(formHtml)
-        .openOn(map);
+      const pop = L.popup({ maxWidth: 380 })
+        .setLatLng(latlng).setContent(formHtml).openOn(map);
 
       setTimeout(() => {
-        const fName = document.getElementById("f_name");
-        const fAddr = document.getElementById("f_addr");
-        const fUrl  = document.getElementById("f_url");
-        const fDesc = document.getElementById("f_desc");
-        const fCancel = document.getElementById("f_cancel");
-        const fSave   = document.getElementById("f_save");
-
-        fName && fName.focus();
-
-        fCancel?.addEventListener("click", () => {
-          if (tempMarker) {
-            map.removeLayer(tempMarker);
-            tempMarker = null;
-          }
+        $("f_cancel").onclick = () => {
+          map.removeLayer(tempMarker);
+          tempMarker = null;
           map.closePopup(pop);
-        });
-
-        fSave?.addEventListener("click", () => {
-          const name = (fName?.value || "").trim();
+        };
+        $("f_save").onclick = () => {
+          const name = $("f_name").value.trim();
           if (!name) {
             showToast("神社名を入力してください");
             return;
           }
-          const addr = (fAddr?.value || "").trim();
-          const url  = (fUrl?.value  || "").trim();
-          const desc = (fDesc?.value || "").trim();
-          const p = tempMarker?.getLatLng() || latlng;
+          const addr = $("f_addr").value.trim();
+          const url = $("f_url").value.trim();
+          const desc = $("f_desc").value.trim();
+          const p = tempMarker.getLatLng();
 
-          const cur = loadData();
-          const rec = {
-            name,
-            address: addr,
-            url,
-            desc,
-            lat: p.lat,
-            lng: p.lng,
-          };
+          const dat = loadData();
+          const rec = { name, address: addr, url, desc, lat: p.lat, lng: p.lng };
 
-          if (isEdit && cur[idx]) {
-            cur[idx] = rec;   // 上書き
-          } else {
-            cur.push(rec);    // 新規
-          }
+          if (isEdit) dat[idx] = rec;
+          else dat.push(rec);
 
-          saveData(cur);
-          showToast(isEdit ? "更新しました" : "保存しました");
-
-          if (tempMarker) {
-            map.removeLayer(tempMarker);
-            tempMarker = null;
-          }
+          saveData(dat);
           map.closePopup(pop);
+          map.removeLayer(tempMarker);
+          tempMarker = null;
           renderMarkers();
-        });
-      }, 0);
+          showToast(isEdit ? "更新しました" : "保存しました");
+        };
+      });
     }
 
-    // ==== 神社名 or 住所で検索してジャンプ ====
     function searchAndJump() {
-      const kw = ($("searchKw").value || "").trim();
-      if (!kw) {
-        showToast("検索キーワードを入力してください");
-        return;
-      }
-      if (!currentData.length) {
-        showToast("ピンがまだありません");
-        return;
-      }
+      const kw = $("searchKw").value.trim();
+      if (!kw) return showToast("検索ワードなし");
 
-      const idx = currentData.findIndex((r) => {
-        const n = (r.name || "").toString();
-        const a = (r.address || "").toString();
-        return n.includes(kw) || a.includes(kw);
-      });
-
-      if (idx === -1) {
-        showToast("該当する神社が見つかりませんでした");
-        return;
-      }
+      const idx = currentData.findIndex(r =>
+        (r.name || "").includes(kw) || (r.address || "").includes(kw)
+      );
+      if (idx === -1) return showToast("見つかりません");
 
       const m = currentMarkers[idx];
-      if (!m) return;
-      const latlng = m.getLatLng();
-      map.setView(latlng, 17);
+      map.setView(m.getLatLng(), 17);
       m.openPopup();
     }
 
-    // ==== 起動 ====
-    window.addEventListener("DOMContentLoaded", () => {
+    window.onload = () => {
       initMap();
       renderMarkers();
-
-      const toggleBtn = $("createToggle");
-      toggleBtn.addEventListener("click", () => {
+      $("btnSearch").onclick = searchAndJump;
+      $("searchKw").onkeydown = (e) =>
+        e.key === "Enter" && searchAndJump();
+      $("createToggle").onclick = () => {
         createMode = !createMode;
-        toggleBtn.classList.toggle("on", createMode);
-        toggleBtn.textContent = createMode
-          ? "作成モード ON"
-          : "作成モード OFF";
-        toggleBtn.setAttribute("aria-pressed", String(createMode));
-        showToast(
-          createMode
-            ? "作成モード：地図をクリックしてピンを追加できます"
-            : "作成モードを終了しました"
-        );
-      });
-
-      $("btnSearch").addEventListener("click", searchAndJump);
-      $("searchKw").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") searchAndJump();
-      });
-    });
+        $("createToggle").textContent =
+          createMode ? "作成モード ON" : "作成モード OFF";
+      };
+    };
   </script>
 </body>
 </html>

@@ -13,216 +13,151 @@
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto,
         "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      background: #ffffff;
+      color: #111;
     }
     header {
       padding: 0.6rem 1rem;
       border-bottom: 1px solid #e5e5e5;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 0.6rem;
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      background: #f8f8f8;
     }
     header h1 {
       margin: 0;
       font-size: 1rem;
       font-weight: 600;
+      color: #111;
     }
-    .ctl {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: flex-end;
-    }
-    input[type="text"] {
-      font-size: 0.9rem;
-      padding: 0.38rem 0.55rem;
+    input {
+      border: 1px solid #777;
+      padding: 0.4rem 0.6rem;
       border-radius: 0.5rem;
-      border: 1px solid #ccc;
-      background: transparent;
+      background: #fafafa;
+      color: #111;
     }
     .btn {
-      font-size: 0.9rem;
-      padding: 0.38rem 0.65rem;
+      border: 1px solid #555;
+      padding: 0.4rem 0.6rem;
       border-radius: 0.5rem;
-      border: 1px solid #ccc;
-      background: transparent;
+      background: #e5e5e5;
       cursor: pointer;
+      color: #111;
     }
     #map {
       height: calc(100vh - 60px);
     }
-    .toast {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 12px;
-      background: rgba(0, 0, 0, 0.78);
-      color: #fff;
-      padding: 0.5rem 0.8rem;
-      border-radius: 0.5rem;
-      font-size: 0.82rem;
-      display: none;
-      z-index: 1000;
+    .popup {
+      color: #111 !important;
+      font-size: 0.9rem;
     }
     .popup h3 {
-      margin: 0 0 0.3rem;
-      font-size: 1rem;
+      font-size: 1.1rem;
+      margin: 0 0 0.4rem;
+      color: #000;
     }
-    .popup p {
-      margin: 0.25rem 0;
+    .popup a {
+      color: #0645ad;
+      text-decoration: underline;
     }
     .desc {
       white-space: pre-wrap;
+      line-height: 1.4;
+      color: #111;
     }
     .hint {
-      font-size: 0.8rem;
-      opacity: 0.75;
+      font-size: 0.84rem;
+      color: #555;
     }
     .leaflet-popup-content {
-      max-height: 240px;
+      max-height: 260px;
       overflow-y: auto;
-    }
-    @media (prefers-color-scheme: dark) {
-      .popup { color: #e9eaed; }
     }
   </style>
 </head>
 <body>
   <header>
     <h1>大垣市 神社マップ</h1>
-    <div class="ctl">
-      <input id="searchKw" type="text" placeholder="神社名 or 住所で検索" />
-      <button id="btnSearch" class="btn">検索してジャンプ</button>
+    <div>
+      <input id="searchKw" type="text" placeholder="神社名 or 住所" />
+      <button id="btnSearch" class="btn">検索</button>
     </div>
   </header>
 
   <div id="map"></div>
-  <div id="toast" class="toast"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
-    const showToast = (msg, ms = 2200) => {
-      const t = $("toast");
-      t.textContent = msg;
-      t.style.display = "block";
-      setTimeout(() => (t.style.display = "none"), ms);
-    };
-    const esc = (s) =>
-      String(s ?? "").replace(/[&<>"']/g, (c) =>
-        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
-      );
-
-    // 管理者用と同じキー（ブラウザ内の同じデータを読むだけ）
     const LS_KEY = "ogaki_shrines_v1";
-    const loadData = () => {
-      try {
-        return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-      } catch {
-        return [];
-      }
-    };
+    const loadData = () => JSON.parse(localStorage.getItem(LS_KEY) || "[]");
 
-    let map, markerLayer;
-    let currentData = [];
-    let currentMarkers = [];
+    let map, markerLayer, data, markers;
 
-    function initMap() {
+    function init() {
       map = L.map("map").setView([35.366, 136.62], 13);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors",
-      }).addTo(map);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
+        .addTo(map);
 
       markerLayer = L.layerGroup().addTo(map);
-    }
 
-    function buildPopupHtml(r) {
-      const name = esc(r.name || "(名称未設定)");
-      const addr = esc(r.address || "");
-      const url  = esc(r.url || "");
-      const desc = esc(r.desc || "");
-      const descBlock = desc
-        ? '<div class="desc">' + desc + "</div>"
-        : '<div class="hint">（説明は未入力）</div>';
-      const urlBlock = url
-        ? '<p><a href="' +
-          url +
-          '" target="_blank" rel="noopener">解説ページを開く</a></p>'
-        : "";
-      return (
-        '<div class="popup">' +
-        "<h3>" + name + "</h3>" +
-        (addr ? "<p>" + addr + "</p>" : "") +
-        urlBlock +
-        descBlock +
-        "</div>"
-      );
-    }
+      data = loadData();
+      markers = [];
 
-    function renderMarkers() {
-      markerLayer.clearLayers();
-      currentData = loadData();
-      currentMarkers = [];
-
-      currentData.forEach((r, idx) => {
-        if (!Number.isFinite(r.lat) || !Number.isFinite(r.lng)) return;
+      data.forEach((r, i) => {
+        if (!Number.isFinite(r.lat)) return;
         const m = L.marker([r.lat, r.lng]).addTo(markerLayer);
-        m.bindPopup(buildPopupHtml(r), { maxWidth: 360 });
-        currentMarkers[idx] = m;
+        m.bindPopup(`
+          <div class="popup">
+            <h3>${r.name}</h3>
+            ${r.address ? `<p>${r.address}</p>` : ""}
+            ${
+              r.url
+                ? `<p><a href="${r.url}" target="_blank">解説ページ</a></p>`
+                : ""
+            }
+            ${
+              r.desc
+                ? `<div class="desc">${r.desc}</div>`
+                : `<div class="hint">説明なし</div>`
+            }
+          </div>`);
+        markers[i] = m;
       });
 
-      if (currentData.length) {
-        try {
-          const bounds = L.featureGroup(
-            currentData
-              .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
-              .map((r) => L.marker([r.lat, r.lng]))
-          ).getBounds();
-          if (bounds.isValid()) map.fitBounds(bounds.pad(0.1));
-        } catch {}
-      }
+      fitMarkers();
     }
 
-    function searchAndJump() {
-      const kw = ($("searchKw").value || "").trim();
-      if (!kw) {
-        showToast("検索キーワードを入力してください");
-        return;
-      }
-      if (!currentData.length) {
-        showToast("ピンがまだありません");
-        return;
-      }
+    function fitMarkers() {
+      if (!data.length) return;
+      const group = L.featureGroup(
+        data.map(r => L.marker([r.lat, r.lng]))
+      );
+      const bounds = group.getBounds();
+      if (bounds.isValid()) map.fitBounds(bounds.pad(0.1));
+    }
 
-      const idx = currentData.findIndex((r) => {
-        const n = (r.name || "").toString();
-        const a = (r.address || "").toString();
-        return n.includes(kw) || a.includes(kw);
-      });
+    function searchJump() {
+      const kw = $("searchKw").value.trim();
+      if (!kw) return;
 
-      if (idx === -1) {
-        showToast("該当する神社が見つかりませんでした");
-        return;
-      }
+      const idx = data.findIndex(
+        r => (r.name || "").includes(kw) || (r.address || "").includes(kw)
+      );
+      if (idx === -1) return;
 
-      const m = currentMarkers[idx];
-      if (!m) return;
-      const latlng = m.getLatLng();
-      map.setView(latlng, 17);
+      const m = markers[idx];
+      map.setView(m.getLatLng(), 17);
       m.openPopup();
     }
 
-    window.addEventListener("DOMContentLoaded", () => {
-      initMap();
-      renderMarkers();
-
-      $("btnSearch").addEventListener("click", searchAndJump);
-      $("searchKw").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") searchAndJump();
-      });
-    });
+    window.onload = () => {
+      init();
+      $("btnSearch").onclick = searchJump;
+      $("searchKw").onkeydown =
+        (e) => e.key === "Enter" && searchJump();
+    };
   </script>
 </body>
 </html>
