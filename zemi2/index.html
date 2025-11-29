@@ -4,10 +4,8 @@
   <meta charset="utf-8" />
   <title>大垣市 神社マップ（閲覧用）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root { color-scheme: light dark; }
     * { box-sizing: border-box; }
@@ -81,6 +79,10 @@
       font-size: 0.8rem;
       opacity: 0.75;
     }
+    .leaflet-popup-content {
+      max-height: 240px;
+      overflow-y: auto;
+    }
     @media (prefers-color-scheme: dark) {
       .popup { color: #e9eaed; }
     }
@@ -150,9 +152,7 @@
         : "";
       return (
         '<div class="popup">' +
-        "<h3>" +
-        name +
-        "</h3>" +
+        "<h3>" + name + "</h3>" +
         (addr ? "<p>" + addr + "</p>" : "") +
         urlBlock +
         descBlock +

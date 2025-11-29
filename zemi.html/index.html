@@ -4,10 +4,8 @@
   <meta charset="utf-8" />
   <title>大垣市 神社マップ（管理用）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root { color-scheme: light dark; }
     * { box-sizing: border-box; }
@@ -110,6 +108,11 @@
       text-decoration: underline;
       cursor: pointer;
     }
+    /* ポップアップが画面からはみ出さないように */
+    .leaflet-popup-content {
+      max-height: 240px;
+      overflow-y: auto;
+    }
     @media (prefers-color-scheme: dark) {
       .form-row input,
       .form-row textarea {
@@ -126,12 +129,10 @@
       <input id="searchKw" type="text" placeholder="神社名 or 住所で検索" />
       <button id="btnSearch" class="btn">検索してジャンプ</button>
 
-      <button
-        id="createToggle"
-        class="btn"
-        aria-pressed="false"
-        title="作成モードON中は地図クリックで追加"
-      >
+      <button id="createToggle"
+              class="btn"
+              aria-pressed="false"
+              title="作成モードON中は地図クリックで追加">
         作成モード OFF
       </button>
     </div>
@@ -142,7 +143,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // ===== 共通ユーティリティ =====
+    // ==== 共通ユーティリティ ====
     const $ = (id) => document.getElementById(id);
     const showToast = (msg, ms = 2200) => {
       const t = $("toast");
@@ -155,7 +156,6 @@
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
       );
 
-    // 同じキーを閲覧用と共有（これまでのデータもそのまま使える）
     const LS_KEY = "ogaki_shrines_v1";
     const saveData = (arr) =>
       localStorage.setItem(LS_KEY, JSON.stringify(arr || []));
@@ -167,7 +167,7 @@
       }
     };
 
-    // ===== 地図・状態 =====
+    // ==== 地図・状態 ====
     let map, markerLayer;
     let createMode = false;
     let tempMarker = null;
@@ -175,8 +175,7 @@
     let currentMarkers = [];
 
     function initMap() {
-      // 大垣市付近
-      map = L.map("map").setView([35.366, 136.62], 13);
+      map = L.map("map").setView([35.366, 136.62], 13); // 大垣市付近
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "&copy; OpenStreetMap contributors",
@@ -184,7 +183,7 @@
 
       markerLayer = L.layerGroup().addTo(map);
 
-      // 作成モード中はクリックした場所にピン＋フォーム
+      // 作成モード中：クリックした場所に新規ピン
       map.on("click", (e) => {
         if (!createMode) return;
         openCreateForm(e.latlng, {});
@@ -206,9 +205,7 @@
         : "";
       return (
         '<div class="popup">' +
-        "<h3>" +
-        name +
-        "</h3>" +
+        "<h3>" + name + "</h3>" +
         (addr ? "<p>" + addr + "</p>" : "") +
         urlBlock +
         descBlock +
@@ -259,7 +256,7 @@
       }
     }
 
-    // ===== ピン追加フォーム（クリックした位置） =====
+    // ==== ピン追加フォーム（クリック位置） ====
     function openCreateForm(latlng, preset) {
       if (tempMarker) {
         map.removeLayer(tempMarker);
@@ -270,18 +267,15 @@
       const formHtml =
         '<div class="popup">' +
         "<h3>ここに神社メモを追加</h3>" +
-        '<div class="form-row"><input id="f_name" type="text" placeholder="神社名（必須）" value="' +
-        esc(preset.name || "") +
-        '"></div>' +
-        '<div class="form-row"><input id="f_addr" type="text" placeholder="住所（任意）" value="' +
-        esc(preset.address || "") +
-        '"></div>' +
-        '<div class="form-row"><input id="f_url" type="text" placeholder="解説サイトURL（任意）" value="' +
-        esc(preset.url || "") +
-        '"></div>' +
-        '<div class="form-row"><textarea id="f_desc" rows="4" placeholder="あなたの説明・考察（任意）">' +
-        esc(preset.desc || "") +
-        "</textarea></div>" +
+        '<div class="form-row"><input id="f_name" type="text" ' +
+        'placeholder="神社名（必須）" value="' + esc(preset.name || "") + '"></div>' +
+        '<div class="form-row"><input id="f_addr" type="text" ' +
+        'placeholder="住所（任意）" value="' + esc(preset.address || "") + '"></div>' +
+        '<div class="form-row"><input id="f_url" type="text" ' +
+        'placeholder="解説サイトURL（任意）" value="' + esc(preset.url || "") + '"></div>' +
+        '<div class="form-row"><textarea id="f_desc" rows="4" ' +
+        'placeholder="あなたの説明・考察（任意）">' +
+        esc(preset.desc || "") + "</textarea></div>" +
         '<div class="form-actions">' +
         '<button id="f_cancel" class="btn">キャンセル</button>' +
         '<button id="f_save" class="btn">保存</button>' +
@@ -308,49 +302,47 @@
 
         fName && fName.focus();
 
-        fCancel &&
-          fCancel.addEventListener("click", () => {
-            if (tempMarker) {
-              map.removeLayer(tempMarker);
-              tempMarker = null;
-            }
-            map.closePopup(pop);
-          });
+        fCancel?.addEventListener("click", () => {
+          if (tempMarker) {
+            map.removeLayer(tempMarker);
+            tempMarker = null;
+          }
+          map.closePopup(pop);
+        });
 
-        fSave &&
-          fSave.addEventListener("click", () => {
-            const name = (fName?.value || "").trim();
-            if (!name) {
-              showToast("神社名を入力してください");
-              return;
-            }
-            const addr = (fAddr?.value || "").trim();
-            const url = (fUrl?.value || "").trim();
-            const desc = (fDesc?.value || "").trim();
-            const p = tempMarker?.getLatLng() || latlng;
+        fSave?.addEventListener("click", () => {
+          const name = (fName?.value || "").trim();
+          if (!name) {
+            showToast("神社名を入力してください");
+            return;
+          }
+          const addr = (fAddr?.value || "").trim();
+          const url = (fUrl?.value || "").trim();
+          const desc = (fDesc?.value || "").trim();
+          const p = tempMarker?.getLatLng() || latlng;
 
-            const cur = loadData();
-            cur.push({
-              name,
-              address: addr,
-              url,
-              desc,
-              lat: p.lat,
-              lng: p.lng,
-            });
-            saveData(cur);
-            showToast("保存しました");
-            if (tempMarker) {
-              map.removeLayer(tempMarker);
-              tempMarker = null;
-            }
-            map.closePopup(pop);
-            renderMarkers();
+          const cur = loadData();
+          cur.push({
+            name,
+            address: addr,
+            url,
+            desc,
+            lat: p.lat,
+            lng: p.lng,
           });
+          saveData(cur);
+          showToast("保存しました");
+          if (tempMarker) {
+            map.removeLayer(tempMarker);
+            tempMarker = null;
+          }
+          map.closePopup(pop);
+          renderMarkers();
+        });
       }, 0);
     }
 
-    // ===== 検索してジャンプ（神社名 or 住所） =====
+    // ==== 神社名 or 住所で検索してジャンプ ====
     function searchAndJump() {
       const kw = ($("searchKw").value || "").trim();
       if (!kw) {
@@ -362,7 +354,6 @@
         return;
       }
 
-      // 部分一致で最初に見つかったものへジャンプ
       const idx = currentData.findIndex((r) => {
         const n = (r.name || "").toString();
         const a = (r.address || "").toString();
@@ -381,12 +372,11 @@
       m.openPopup();
     }
 
-    // ===== 起動 =====
+    // ==== 起動 ====
     window.addEventListener("DOMContentLoaded", () => {
       initMap();
       renderMarkers();
 
-      // 作成モードON/OFF
       const toggleBtn = $("createToggle");
       toggleBtn.addEventListener("click", () => {
         createMode = !createMode;
@@ -402,7 +392,6 @@
         );
       });
 
-      // 検索ジャンプ
       $("btnSearch").addEventListener("click", searchAndJump);
       $("searchKw").addEventListener("keydown", (e) => {
         if (e.key === "Enter") searchAndJump();
