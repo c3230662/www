@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>大垣市 神社メモマップ（シンプル版）</title>
+  <title>大垣市 神社マップ（管理用）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link
     rel="stylesheet"
@@ -121,11 +121,15 @@
 </head>
 <body>
   <header>
-    <h1>大垣市 神社メモマップ</h1>
+    <h1>大垣市 神社マップ（管理用）</h1>
     <div class="ctl">
+      <input id="searchKw" type="text" placeholder="名前 or 住所で検索" />
+      <button id="btnSearch" class="btn">検索してジャンプ</button>
+
       <input id="jumpName" type="text" placeholder="名称（任意）" />
       <input id="jumpAddr" type="text" placeholder="住所（例：大垣市林町）" />
-      <button id="btnJump" class="btn">この住所で追加</button>
+      <button id="btnJump" class="btn">この住所でピン追加</button>
+
       <button
         id="createToggle"
         class="btn"
@@ -154,7 +158,7 @@
       String(s ?? "").replace(/[&<>"']/g, (c) =>
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
       );
-    const LS_KEY = "ogaki_simple_anchors";
+    const LS_KEY = "ogaki_shrines_v1";
     const saveData = (arr) =>
       localStorage.setItem(LS_KEY, JSON.stringify(arr || []));
     const loadData = () => {
@@ -165,14 +169,16 @@
       }
     };
 
-    // ===== 地図初期化 =====
+    // ===== 地図 =====
     let map;
     let markerLayer;
     let createMode = false;
     let tempMarker = null;
+    let currentData = [];
+    let currentMarkers = [];
 
     function initMap() {
-      // 大垣市役所あたり
+      // 大垣市付近
       map = L.map("map").setView([35.366, 136.62], 13);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -181,34 +187,10 @@
 
       markerLayer = L.layerGroup().addTo(map);
 
-      // 作成モード中はクリックでフォーム
+      // 作成モード中はクリックで追加フォーム
       map.on("click", (e) => {
         if (!createMode) return;
         openCreateForm(e.latlng, {});
-      });
-    }
-
-    // ===== ピン表示 =====
-    function renderMarkers() {
-      markerLayer.clearLayers();
-      const data = loadData();
-      data.forEach((r, idx) => {
-        if (!Number.isFinite(r.lat) || !Number.isFinite(r.lng)) return;
-        const m = L.marker([r.lat, r.lng]).addTo(markerLayer);
-        m.bindPopup(buildPopupHtml(r, idx), { maxWidth: 360 });
-        m.on("popupopen", (ev) => {
-          const el = ev.popup.getElement();
-          const del = el?.querySelector(".del");
-          if (del) {
-            del.addEventListener("click", () => {
-              const all = loadData().filter((x, i) => i !== idx);
-              saveData(all);
-              showToast("削除しました");
-              renderMarkers();
-              map.closePopup();
-            });
-          }
-        });
       });
     }
 
@@ -233,12 +215,42 @@
         (addr ? "<p>" + addr + "</p>" : "") +
         urlBlock +
         descBlock +
-        '<div class="hint"><a class="del">このピンを削除</a></div>' +
+        '<div class="hint"><a class="del" data-idx="' +
+        idx +
+        '">このピンを削除</a></div>' +
         "</div>"
       );
     }
 
-    // ===== 追加フォーム =====
+    function renderMarkers() {
+      markerLayer.clearLayers();
+      currentData = loadData();
+      currentMarkers = [];
+
+      currentData.forEach((r, idx) => {
+        if (!Number.isFinite(r.lat) || !Number.isFinite(r.lng)) return;
+        const m = L.marker([r.lat, r.lng]).addTo(markerLayer);
+        m.bindPopup(buildPopupHtml(r, idx), { maxWidth: 360 });
+
+        m.on("popupopen", (ev) => {
+          const el = ev.popup.getElement();
+          const del = el?.querySelector(".del");
+          if (del) {
+            del.addEventListener("click", () => {
+              const all = loadData().filter((x, i) => i !== idx);
+              saveData(all);
+              showToast("削除しました");
+              renderMarkers();
+              map.closePopup();
+            });
+          }
+        });
+
+        currentMarkers[idx] = m;
+      });
+    }
+
+    // ===== ピン追加フォーム =====
     function openCreateForm(latlng, preset) {
       if (tempMarker) {
         map.removeLayer(tempMarker);
@@ -328,7 +340,7 @@
       }, 0);
     }
 
-    // ===== ジオコーディング（住所→座標） =====
+    // ===== 住所→座標 =====
     async function geocodeAddress(name, address) {
       if (!address) return null;
       let q = address;
@@ -353,12 +365,40 @@
       return { name, address: q, lat, lng };
     }
 
-    // ===== 起動・イベント =====
+    // ===== 検索してジャンプ =====
+    function searchAndJump() {
+      const kw = ($("searchKw").value || "").trim();
+      if (!kw) {
+        showToast("検索キーワードを入力してください");
+        return;
+      }
+      if (!currentData.length) {
+        showToast("ピンがまだありません");
+        return;
+      }
+      const idx = currentData.findIndex((r) => {
+        const n = (r.name || "").toString();
+        const a = (r.address || "").toString();
+        return n.includes(kw) || a.includes(kw);
+      });
+      if (idx === -1) {
+        showToast("該当するピンが見つかりませんでした");
+        return;
+      }
+      const r = currentData[idx];
+      const m = currentMarkers[idx];
+      if (!m) return;
+      const latlng = m.getLatLng();
+      map.setView(latlng, 17);
+      m.openPopup();
+    }
+
+    // ===== 起動 =====
     window.addEventListener("DOMContentLoaded", () => {
       initMap();
       renderMarkers();
 
-      // 作成モード切り替え
+      // 作成モード
       const toggleBtn = $("createToggle");
       toggleBtn.addEventListener("click", () => {
         createMode = !createMode;
@@ -374,7 +414,7 @@
         );
       });
 
-      // 住所でジャンプして追加
+      // 住所でピン追加
       $("btnJump").addEventListener("click", async () => {
         const name = ($("jumpName").value || "").trim();
         const addr = ($("jumpAddr").value || "").trim();
@@ -389,12 +429,19 @@
           return;
         }
         map.setView([g.lat, g.lng], 17);
-        openCreateForm({ lat: g.lat, lng: g.lng }, { name: g.name, address: g.address });
+        openCreateForm(
+          { lat: g.lat, lng: g.lng },
+          { name: g.name, address: g.address }
+        );
       });
-
-      // Enterでジャンプ
       $("jumpAddr").addEventListener("keydown", (e) => {
         if (e.key === "Enter") $("btnJump").click();
+      });
+
+      // 検索ジャンプ
+      $("btnSearch").addEventListener("click", searchAndJump);
+      $("searchKw").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") searchAndJump();
       });
     });
   </script>
