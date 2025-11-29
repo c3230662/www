@@ -103,11 +103,12 @@
       justify-content: flex-end;
       margin-top: 0.3rem;
     }
-    .del {
-      color: #b91c1c;
+    .del, .edit {
       text-decoration: underline;
       cursor: pointer;
     }
+    .del { color: #b91c1c; }
+    .edit { color: #2563eb; }
     /* ポップアップが画面からはみ出さないように */
     .leaflet-popup-content {
       max-height: 240px;
@@ -186,7 +187,7 @@
       // 作成モード中：クリックした場所に新規ピン
       map.on("click", (e) => {
         if (!createMode) return;
-        openCreateForm(e.latlng, {});
+        openEditFormAt(e.latlng, null); // 新規
       });
     }
 
@@ -209,9 +210,10 @@
         (addr ? "<p>" + addr + "</p>" : "") +
         urlBlock +
         descBlock +
-        '<div class="hint"><a class="del" data-idx="' +
-        idx +
-        '">このピンを削除</a></div>' +
+        '<div class="hint">' +
+        '<a class="edit" data-idx="' + idx + '">このピンを編集</a> / ' +
+        '<a class="del" data-idx="' + idx + '">削除</a>' +
+        "</div>" +
         "</div>"
       );
     }
@@ -226,10 +228,11 @@
         const m = L.marker([r.lat, r.lng]).addTo(markerLayer);
         m.bindPopup(buildPopupHtml(r, idx), { maxWidth: 360 });
 
-        // 削除処理
         m.on("popupopen", (ev) => {
           const el = ev.popup.getElement();
           const del = el?.querySelector(".del");
+          const edit = el?.querySelector(".edit");
+
           if (del) {
             del.addEventListener("click", () => {
               const all = loadData().filter((x, i) => i !== idx);
@@ -237,6 +240,17 @@
               showToast("削除しました");
               renderMarkers();
               map.closePopup();
+            });
+          }
+
+          if (edit) {
+            edit.addEventListener("click", () => {
+              map.closePopup();
+              const data = loadData();
+              const rec = data[idx];
+              if (!rec) return;
+              const latlng = m.getLatLng();
+              openEditFormAt(latlng, idx, rec); // 既存データ編集
             });
           }
         });
@@ -256,17 +270,22 @@
       }
     }
 
-    // ==== ピン追加フォーム（クリック位置） ====
-    function openCreateForm(latlng, preset) {
+    // ==== 新規／編集フォーム ====
+    // idx === null -> 新規, それ以外 -> 編集
+    function openEditFormAt(latlng, idx, preset = {}) {
       if (tempMarker) {
         map.removeLayer(tempMarker);
         tempMarker = null;
       }
+      const isEdit = idx !== null && idx !== undefined;
       tempMarker = L.marker(latlng, { draggable: true }).addTo(map);
+
+      const title = isEdit ? "神社メモを編集" : "ここに神社メモを追加";
+      const saveLabel = isEdit ? "更新" : "保存";
 
       const formHtml =
         '<div class="popup">' +
-        "<h3>ここに神社メモを追加</h3>" +
+        "<h3>" + title + "</h3>" +
         '<div class="form-row"><input id="f_name" type="text" ' +
         'placeholder="神社名（必須）" value="' + esc(preset.name || "") + '"></div>' +
         '<div class="form-row"><input id="f_addr" type="text" ' +
@@ -278,7 +297,7 @@
         esc(preset.desc || "") + "</textarea></div>" +
         '<div class="form-actions">' +
         '<button id="f_cancel" class="btn">キャンセル</button>' +
-        '<button id="f_save" class="btn">保存</button>' +
+        '<button id="f_save" class="btn">' + saveLabel + "</button>" +
         "</div>" +
         '<div class="hint">※ ピンはドラッグで微調整できます</div>' +
         "</div>";
@@ -295,10 +314,10 @@
       setTimeout(() => {
         const fName = document.getElementById("f_name");
         const fAddr = document.getElementById("f_addr");
-        const fUrl = document.getElementById("f_url");
+        const fUrl  = document.getElementById("f_url");
         const fDesc = document.getElementById("f_desc");
         const fCancel = document.getElementById("f_cancel");
-        const fSave = document.getElementById("f_save");
+        const fSave   = document.getElementById("f_save");
 
         fName && fName.focus();
 
@@ -317,21 +336,29 @@
             return;
           }
           const addr = (fAddr?.value || "").trim();
-          const url = (fUrl?.value || "").trim();
+          const url  = (fUrl?.value  || "").trim();
           const desc = (fDesc?.value || "").trim();
           const p = tempMarker?.getLatLng() || latlng;
 
           const cur = loadData();
-          cur.push({
+          const rec = {
             name,
             address: addr,
             url,
             desc,
             lat: p.lat,
             lng: p.lng,
-          });
+          };
+
+          if (isEdit && cur[idx]) {
+            cur[idx] = rec;   // 上書き
+          } else {
+            cur.push(rec);    // 新規
+          }
+
           saveData(cur);
-          showToast("保存しました");
+          showToast(isEdit ? "更新しました" : "保存しました");
+
           if (tempMarker) {
             map.removeLayer(tempMarker);
             tempMarker = null;
