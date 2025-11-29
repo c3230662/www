@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>大垣市 神社マップ（閲覧用）</title>
+  <title>大垣市 神社マップ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -90,7 +90,7 @@
 </head>
 <body>
   <header>
-    <h1>大垣市 神社マップ（閲覧用）</h1>
+    <h1>大垣市 神社マップ</h1>
     <div class="ctl">
       <input id="searchKw" type="text" placeholder="神社名 or 住所で検索" />
       <button id="btnSearch" class="btn">検索してジャンプ</button>
@@ -114,6 +114,7 @@
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
       );
 
+    // 管理者用と同じキー（ブラウザ内の同じデータを読むだけ）
     const LS_KEY = "ogaki_shrines_v1";
     const loadData = () => {
       try {
@@ -140,7 +141,7 @@
     function buildPopupHtml(r) {
       const name = esc(r.name || "(名称未設定)");
       const addr = esc(r.address || "");
-      const url = esc(r.url || "");
+      const url  = esc(r.url || "");
       const desc = esc(r.desc || "");
       const descBlock = desc
         ? '<div class="desc">' + desc + "</div>"
